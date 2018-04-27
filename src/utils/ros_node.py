@@ -203,7 +203,7 @@ class RosNode(object):
                     sub_item = {topic : Subscriber(topic, 
                                                       message_type, 
                                                       self.lock, 
-                                                      execute=self.PublishCallback
+                                                      execute=self.SubscribeCallback
                                                       )}
                     self.mapped_subs.update(sub_item)
 
@@ -256,8 +256,8 @@ class RosNode(object):
         except Exception as inst:
               ParseException(inst)
 
-    def PublishCallback(self, msg, topic):
-        raise Exception('Warning: Method PublishCallback() not defined in child class')
+    def SubscribeCallback(self, msg, topic):
+        raise Exception('Warning: Method SubscribeCallback() not defined in child class')
 
     def ShutdownCallback(self):
         ''' Shutdown method.
@@ -300,7 +300,7 @@ class Sample(RosNode):
         except Exception as inst:
               ParseException(inst)
               
-    def PublishCallback(self, msg, topic):
+    def SubscribeCallback(self, msg, topic):
         try:
             message = msg
             
