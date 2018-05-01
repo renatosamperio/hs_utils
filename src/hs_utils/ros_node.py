@@ -16,7 +16,7 @@ def ParseException(inst):
   exception_line = str(exc_tb.tb_lineno) 
   exception_type = str(type(inst))
   exception_desc = str(inst)
-  rospy.logdebug( "  %s: %s in %s:%s"%(exception_type, 
+  rospy.logerr( "  %s: %s in %s:%s"%(exception_type, 
                 exception_desc, 
                 exception_fname,  
                 exception_line ))
