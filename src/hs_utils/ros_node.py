@@ -336,7 +336,7 @@ if __name__ == '__main__':
                 action='store',
                 default=1000,
                 help='Topics to play')
-    parser.add_option('--latch',
+    parser.add_option('-l', '--latch',
                 action='store_true',
                 default=False,
                 help='Message latching')
@@ -344,10 +344,15 @@ if __name__ == '__main__':
                 action='store_true',
                 default=None,
                 help='Message latching')
-    parser.add_option('--debug',
+    parser.add_option('-d', '--debug',
                 action='store_true',
                 default=False,
                 help='Provide debug level')
+    parser.add_option('--do_ros_file',
+                action='store_true',
+                default=False,
+                help='Provide debug level')
+    
     (options, args) = parser.parse_args()
     
     if options.run_sample is None:
