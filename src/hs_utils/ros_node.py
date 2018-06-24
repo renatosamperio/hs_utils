@@ -365,6 +365,15 @@ if __name__ == '__main__':
         logLevel       = rospy.DEBUG if options.debug else rospy.INFO
         rospy.init_node('sample', anonymous=False, log_level=logLevel)
     
+        ## Removing ROS file logging
+        if not options.do_ros_file:
+            root_handlers = logging.getLoggerClass().root.handlers
+            if isinstance(root_handlers, list) and len(root_handlers)>0:
+                handler = root_handlers[0]
+                if type(handler) == logging.handlers.RotatingFileHandler:
+                    rospy.logwarn("Shutting down file log handler")
+                    logging.getLoggerClass().root.handlers = []
+
         ## Defining static variables for subscribers and publishers
         sub_topics     = [
             ('topic1',  String)
