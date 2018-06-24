@@ -26,6 +26,12 @@ class MongoAccess:
     rospy.logdebug("Creating mongo client with debug mode [%s]"%
 		      ('ON' if self.debug else 'OFF'))
     
+  def Connect(self, database, collection, host='localhost', port=27017):      
+    try: 
+        return self.connect(database, collection, host=host, port=port)
+    except Exception as inst:
+      ros_node.ParseException(inst)
+
   def connect(self, database, collection, host='localhost', port=27017):
     ''' '''
     result = False
