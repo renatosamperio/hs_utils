@@ -20,7 +20,7 @@ class Similarity:
       self.remove_punctuation_map = dict((ord(char), None) 
                                         for char in string.punctuation)
       self.vectorizer = TfidfVectorizer(tokenizer=self.normalize, 
-                                        stop_words='english')
+                                        stop_words=None)
 
       self.others = None
       self.base = None
