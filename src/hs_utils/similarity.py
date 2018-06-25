@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 import nltk
 import string
 import utilities
+import rospy
+import re
 
 from optparse import OptionParser
 from sklearn.feature_extraction.text import TfidfVectorizer
