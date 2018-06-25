@@ -41,9 +41,14 @@ class Similarity:
                   text.lower().translate(
                       self.remove_punctuation_map)))
 
-  def cosine_sim(self, text1, text2):
-    tfidf = self.vectorizer.fit_transform([text1, text2])
-    return ((tfidf * tfidf.T).A)[0,1]
+  def cosine_sim(self, text1, text2, debug=False):
+    try:
+        tfidf = self.vectorizer.fit_transform([text1, text2])
+        cosine_sim =  ((tfidf * tfidf.T).A)[0,1]
+        return cosine_sim
+    except Exception as inst:
+        utilities.ParseException(inst)
+        raise Exception('Error in cosine similarity!') 
 
   def score(self, base, other, debug=False):
     try:
