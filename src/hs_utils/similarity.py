@@ -43,32 +43,101 @@ class Similarity:
     tfidf = self.vectorizer.fit_transform([text1, text2])
     return ((tfidf * tfidf.T).A)[0,1]
 
-  def score(self, base, other):
+  def score(self, base, other, debug=False):
     try:
-      ## Stripping inputs
-      other = other.replace(".", " ").strip()
-      base = base.strip()
+        ## Stripping inputs
+        oring_base = base
+        oring_other = other
+        base = base.decode('utf-8').replace(".", " ").strip()
+        base = base.replace("-", " ").strip()
+        other = other.replace(".", " ").strip()
+        other = other.replace("-", " ").strip()
+        
+        ## Removing extra spaces in sentences
+        base_splitted = base.split()
+        base_splitted = u' '.join(base_splitted).encode('utf-8').strip()
+        base_splitted = base_splitted.translate(None, b"':([_#@&*|~`%^<>").strip()
+        base_splitted = re.sub('-.', ' ', base_splitted)
+#         base_splitted = base_splitted.replace('-', ' ')
+#         base_splitted = base_splitted.replace('.', ' ')
+        
+        other_splitted = other.split()
+        other_splitted = u' '.join(other_splitted).encode('utf-8').strip()
+        other_splitted = other_splitted.translate(None, b"':([_#@&*|~`%^<>").strip()
+        other_splitted = re.sub('-.', ' ', other_splitted)
+#         other_splitted = other_splitted.replace('-', ' ')
+#         other_splitted = other_splitted.replace('.', ' ')
+        
+        ## Sub-scoring if base is inside other
+        has_same_words = len(base_splitted) == len(other_splitted)
+        is_inside_other= base_splitted.lower() in other_splitted.lower() or other_splitted.lower() in base_splitted.lower()
+        
+        if debug:
+            rospy.loginfo("===> base:\t\t%s"%base)
+            rospy.loginfo("===> other:\t\t%s"%other)
+            rospy.loginfo("===> base_splitted:\t%s"%base_splitted)
+            rospy.loginfo("===> other_splitted:\t%s"%other_splitted)
+            rospy.loginfo("===> is_inside_other:\t%s"%is_inside_other)
+            rospy.loginfo("===> has_same_words:\t%s"%has_same_words)
+        
+        ## Splitting educated guess with inputs that are
+        ##    self contained and have same number of words
+        complete_phrase = 0.5 if has_same_words else 0.0
+        complete_phrase += 0.5 if is_inside_other else 0.0
+        
+        ## If both sentences are the same don't do similarity
+        if base == other:
+            similarity = 1.0
+        else:
+            base_lower = base.lower()
+            other_lower = other.lower()
+            if debug:
+                rospy.loginfo("===> base.lower:\t%s"%base_lower)
+                rospy.loginfo("===> other.lower:\t%s"%other_lower)
+            try:
+                measure1 = self.cosine_sim(base_lower, other_lower, debug=True)
+            except Exception:
+                print("Error: cosine similarity failed with [%s] and [%s]"%
+                              (str(base_lower), str(other_lower)))
+                measure1 = self.cosine_sim(oring_base, oring_other)
+                
+            try:
+                measure2 = self.cosine_sim(oring_base, oring_other)
+            except ValueError:
+                base_splitted = [item for item in oring_base.split()]
+                other_splitted = [item for item in oring_other.split()]
+                measure2 = self.cosine_sim(oring_base.split(), oring_other.split())
+                if debug:
+                    rospy.loginfo("===> measure1:\t\t%s"%measure1)
+                    rospy.loginfo("===> measure2:\t\t%s"%measure2)
+            ## Sometimes the original inputs have better
+            ##    similarity than skimmed strings
+            similarity = max(measure1, measure2)
+            if similarity is None:
+                score = -1
+                return
+        
+        ## Scoring measurements
+        score = (complete_phrase+similarity)/2.0
+        
+        if base_splitted == other_splitted:
+            similarity2 = 1.0
+        else:
+            similarity2 = self.cosine_sim(base_splitted, other_splitted)
+         
+        if debug:
+            rospy.loginfo("===> complete_phrase:\t%s"%complete_phrase)
+            rospy.loginfo("===> similarity:\t%s"%similarity)
+            rospy.loginfo("===> similarity2:\t%s"%similarity2)
+            rospy.loginfo("")
+#         score2 = (complete_phrase+similarity2)/2.0
+#         print "===> score:\t\t", score
+#         print "===> score2:\t\t", score2
 
-      ## Removing extra spaces in sentences
-      base_splitted = base.split()
-      base_splitted = ' '.join(base_splitted)
-      other_splitted = other.split()
-      other_splitted = ' '.join(other_splitted)
-
-      ## Sub-scoring if base is inside other
-      complete_phrase = 1.0 if base_splitted in other_splitted else 0.0
-      
-      ## If both sentences are the same don't do similarity
-      if base == other:
-          similarity = 1.0
-      else:
-          similarity = self.cosine_sim(base, other)
-
-      ## Scoring measurements
-      score = (complete_phrase+similarity)/2.0
-      return score
     except Exception as inst:
-      utilities.ParseException(inst)
+        utilities.ParseException(inst)
+    finally:
+        return score
 
 def example4(task):
   try:
