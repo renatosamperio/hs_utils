@@ -23,6 +23,7 @@ class IMDbHandler:
         ''' '''
         try: 
             ## Adding local variables
+            self.clean_chars = '[-«\[@#$()\]]'
             self.non_valid  = ['TV episode', 'video game', 'TV short', 'TV series', 'TV mini-series', 'video', 'TV special']
             self.valid = ['feature', 'TV movie']
             self.list_terms = {'case_sensitive': [], 'lower_case': [], 'depends_context': []}
