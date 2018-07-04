@@ -39,6 +39,11 @@ class IMDbHandler:
                                 file_path = os.path.join(value, file)
                                 self.list_terms.update({file[:-4]: self.load_terms(file_path)})
 
+            ## Converting list of termins into UTF-8
+            self.case_sensitive  = [item.decode('utf8') for item in self.list_terms['case_sensitive']]
+            self.lower_case      = [item.decode('utf8') for item in self.list_terms['lower_case']]
+            self.depends_context = [item.decode('utf8') for item in self.list_terms['depends_context']]
+
         except Exception as inst:
             utilities.ParseException(inst)
 
