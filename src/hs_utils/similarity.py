@@ -57,7 +57,7 @@ class Similarity:
         ## Stripping inputs
         oring_base = base
         oring_other = other
-        base = base.decode('utf-8').replace(".", " ").strip()
+        base = base.replace(".", " ").strip()
         base = base.replace("-", " ").strip()
         other = other.replace(".", " ").strip()
         other = other.replace("-", " ").strip()
