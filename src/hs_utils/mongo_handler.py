@@ -260,6 +260,24 @@ if __name__ == '__main__':
 		      default=False,
 		      help="Set this option to print object IDs")
   
+  sliceOperations = OptionGroup(parser, "Database find operations with document slicing",
+              "These options are for giving chunks of entries")
+  sliceOperations.add_option("-s", "--slice",
+              action="store_true", 
+              dest="slice", 
+              default=False,
+              help="Slices query")
+  sliceOperations.add_option('--start',
+              type="int",
+              action='store',
+              default=None,
+              help="Slices starting index")
+  sliceOperations.add_option('--end',
+              type="int",
+              action='store',
+              default=None,
+              help="Slices ending index")
+  
   delOps = OptionGroup(parser, "Database deleting operations",
 		      "These options are for using handler operations")
   delOps.add_option("-r", "--delete",
@@ -295,9 +313,10 @@ if __name__ == '__main__':
   parser.add_option_group(findOps)
   parser.add_option_group(delOps)
   parser.add_option_group(updateOps)
+  parser.add_option_group(sliceOperations)
   
   (options, args) = parser.parse_args()
-  #print options
+  #print (options)
   
   printHelp = False
   if options.database is None:
