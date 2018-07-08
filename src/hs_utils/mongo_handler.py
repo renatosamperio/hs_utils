@@ -175,46 +175,57 @@ class MongoAccess:
             self.Debug("Warning: Not expected result set:\n%s"%
                               str(resultSet))
     except Exception as inst:
-      ros_node.ParseException(inst)
+      utilities.ParseException(inst)
     finally:
       return result
 
   def Debug(self, line):
     try: 
-        if self.debug:
+        if self.debug == 0:
             rospy.logdebug(line)
+        elif self.debug == 1:
+            print(line)
     except Exception as inst:
-        ros_node.ParseException(inst)
+        utilities.ParseException(inst)
+
 def db_handler_call(options):
   ''' Method for calling MongoAccess handler'''
-  #print options
   
-  try: 
-    database = MongoAccess()
-    database.connect(options.database, options.collections)
+  try:
+    database = MongoAccess(debug=1)
+    database.Connect(options.database, options.collections)
     
     if options.insert:
       post_id = database.Insert(options.document)
       if post_id is not None:
-	rospy.logdebug("Item inserted with ID: %s"%(str(post_id)))
+        database.Debug("Item inserted with ID: %s"%(str(post_id)))
   
-    if options.report:
+    elif options.report and options.slice:
+      print("Finding documents from %d to %d"%(options.start, options.end))
+      posts   = database.Find(options.condition)
+      entries = posts[options.start:options.end]
+      counter = options.start
+      for entry in entries:
+        print "["+str(counter)+"]"+str(entry['_id'])
+        counter += 1
+
+    elif options.report:
       posts = database.Find(options.condition)
       database.Print(posts, with_id=options.with_ids)
 	
-    if options.delete:
+    elif options.delete:
       result = database.Remove(condition=options.removal)
       
-    if options.update:
+    elif options.update:
       result = database.Update(condition=options.referal, 
 			       substitute=options.replace)
-      
+
   except Exception as inst:
-    ros_node.ParseException(inst)
+    utilities.ParseException(inst)
   
 if __name__ == '__main__':
   ''''''
-  rospy.logdebug('Logger created.')
+  print('Logger created.')
 
   usage = "usage: %prog opt1=arg1 opt2=arg2"
   parser = OptionParser(usage=usage)
@@ -333,19 +344,25 @@ if __name__ == '__main__':
     else:
       options.document = ast.literal_eval(options.document)
     
-  if options.report:
+  elif options.report:
     if len(options.condition)<1:
       options.condition = {}
     else:
       options.condition = ast.literal_eval(options.condition)
       
-  if options.delete:
+    if options.slice:
+      if options.start is None:
+        parser.error("Missing required SLICE option: --start=0")
+      if options.end is None:
+        parser.error("Missing required SLICE option: --end=5")
+      
+  elif options.delete:
     if len(options.removal)<1:
       parser.error("Missing required DELETE option: removal")
     else:
       options.removal = ast.literal_eval(options.removal)
 	
-  if options.update:
+  elif options.update:
     if len(options.referal)<1:
       parser.error("Missing required UPDATE option: referal")
     if len(options.replace)<1:
@@ -353,7 +370,10 @@ if __name__ == '__main__':
     else:
       options.referal = ast.literal_eval(options.referal)
       options.replace = ast.literal_eval(options.replace)
-	
+  else:
+      print("No option was selected")
+      sys.exit(0)
+
   if printHelp:
     parser.print_help()
   
