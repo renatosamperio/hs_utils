@@ -16,15 +16,21 @@ import ros_node
 
 sys.setrecursionlimit(5000)
 class MongoAccess:
-  def __init__(self, debug=False):
+  def __init__(self, debug=2):
     ''' '''
     self.component	   = self.__class__.__name__
     self.coll_name     = None
     self.collection    = None
     self.db	 	       = None
     self.debug	 	   = debug
-    rospy.logdebug("Creating mongo client with debug mode [%s]"%
-		      ('ON' if self.debug else 'OFF'))
+
+    if self.debug == 0:    
+        logType = 'ROSPY'
+    elif self.debug == 1:
+        logType = 'ON'
+    else:
+        logType = 'OFF'
+    self.Debug("Creating mongo client with debug mode [%s]"%logType)
     
   def Connect(self, database, collection, host='localhost', port=27017):      
     try: 
