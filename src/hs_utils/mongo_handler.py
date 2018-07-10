@@ -8,11 +8,12 @@ import datetime
 import pprint
 import rospy
 
+from pprint import pprint
 from optparse import OptionParser, OptionGroup
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
-import ros_node
+import utilities
 
 sys.setrecursionlimit(5000)
 class MongoAccess:
@@ -32,11 +33,11 @@ class MongoAccess:
         logType = 'OFF'
     self.Debug("Creating mongo client with debug mode [%s]"%logType)
     
-  def Connect(self, database, collection, host='localhost', port=27017):      
+  def Connect(self, database, collection, host='localhost', port=27017):
     try: 
         return self.connect(database, collection, host=host, port=port)
     except Exception as inst:
-      ros_node.ParseException(inst)
+      utilities.ParseException(inst)
 
   def connect(self, database, collection, host='localhost', port=27017):
     ''' '''
@@ -67,7 +68,7 @@ class MongoAccess:
       result = self.collection is not None
     
     except Exception as inst:
-      ros_node.ParseException(inst)
+      utilities.ParseException(inst)
     finally:
       return result
       
@@ -77,7 +78,7 @@ class MongoAccess:
         self.Debug("Inserting document in collection [%s]"%(self.coll_name))
         post_id = self.collection.insert(document)
     except Exception as inst:
-        ros_node.ParseException(inst)
+        utilities.ParseException(inst)
     finally:
         return post_id
 
@@ -88,7 +89,7 @@ class MongoAccess:
       self.Debug("Finding document in collection [%s]"%(self.coll_name))
       posts = self.collection.find(condition, no_cursor_timeout=timeout)
     except Exception as inst:
-      ros_node.ParseException(inst)
+      utilities.ParseException(inst)
     return posts
     
   def Print(self, posts, with_id=False):
@@ -109,7 +110,7 @@ class MongoAccess:
           else:
               self.Debug("Invalid input posts for printing")
       except Exception as inst:
-          ros_node.ParseException(inst)
+          utilities.ParseException(inst)
 
   def Remove(self, condition=None):
     '''Deletes data from database '''
@@ -138,7 +139,7 @@ class MongoAccess:
         collSize = self.collection.count()
         self.Debug("Collection [%s] has a size of [%s]"%(self.coll_name, str(collSize)))
     except Exception as inst:
-      ros_node.ParseException(inst)
+      utilities.ParseException(inst)
     finally:
       return collSize
  
