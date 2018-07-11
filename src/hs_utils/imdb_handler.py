@@ -148,14 +148,16 @@ class IMDbHandler:
                 
             ## Remove non-required specific characters
             if not splitted.isalpha():
-                splitted = u''.join(splitted).encode('utf-8').strip()
                 splitted = splitted.translate(None, b"-([_#@&*|~`%^<>]").strip()
 
 #             print "  ===> title_has_year:\t ", title_has_year
 #             print "  ===> year_found:\t ", year_found
 #             print "  ===> splitted:\t ", splitted
+
+            splitted = splitted.decode('utf-8').strip()
+
         except Exception as inst:
-          utilities.ParseException(inst)
+            utilities.ParseException(inst)
         finally:
             return year_found, splitted
 
