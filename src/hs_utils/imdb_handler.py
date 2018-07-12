@@ -73,13 +73,14 @@ class IMDbHandler:
             if self.list_terms is None:
                 rospy.logwarn("Invalid list of terms")
                 return
-            
+
             ## Removing non-expected characters
+            if debug: print "---> sentence:\t ", sentence
             sentence = re.sub('[\[@#$()\]]', '', sentence)
 
             ## Removing special works from torrent
             splitted        = sentence.strip().split()
-            if debug: print "---> 1sentence:\t\t ", sentence 
+            if debug: print "---> 1sentence:\t ", sentence 
 
             ## Split sentence and look if every word
             ##    is in the special list of characters
@@ -119,9 +120,6 @@ class IMDbHandler:
             ## Removing non-expected characters
             new_sentence = re.sub('[\[@#$()\]]', '', new_sentence)
             if debug: print "---> 3new_sentence:\t ", new_sentence
-            
-#             RX = re.compile('([&#])')
-#             new_sentence = RX.sub(r'\\\1', new_sentence)
 
         except Exception as inst:
           utilities.ParseException(inst)
