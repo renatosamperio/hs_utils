@@ -219,8 +219,8 @@ class IMDbHandler:
                     updated_imdb.append(imdb_item)
                 else:
                     ignored_items           += 1
-                    imdb_title_decoded      = imdb_item['title'].decode('utf-8')
                     
+                    imdb_title_decoded = imdb_item['title'].decode('utf-8').strip()
                     rospy.logdebug("      Ignored [%s] vs [%s] = %f"%
                                       (splitted_title_decoded, imdb_title_decoded, score))
                     
