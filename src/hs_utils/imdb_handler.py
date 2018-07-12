@@ -206,8 +206,6 @@ class IMDbHandler:
             ignored_items   = 0
             for imdb_item in imdb_data:
                 debug = False
-#                 if 'The Call'==splitted_title:
-#                     debug = True
                 score = self.comparator.score(splitted_title, imdb_item['title'], debug=debug)
                 year_matches    = year_found == imdb_item['year']
                 item_type       = 'feature' == imdb_item['type']
@@ -215,7 +213,7 @@ class IMDbHandler:
                 imdb_item.update({'year_matches':year_matches})
                 imdb_item['title'] = u''.join(imdb_item['title']).encode('utf-8').strip()
                 
-                splitted_title_decoded  = splitted_title.decode('utf-8')
+                splitted_title_decoded = splitted_title.encode('UTF-8')
                 ## Adding only very similar titles
                 if score > 0.98:
                     updated_imdb.append(imdb_item)
