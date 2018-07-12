@@ -354,7 +354,7 @@ def test_with_db(args):
                 rospy.logdebug("  + [%d] Skimmed title: [%s]"%(counter, clean_name))
                 items       = movie_handler.get_imdb_best_title(clean_name)
                 
-                pprint(items)
+                #pprint(items)
                 print "-"*80
                 counter += 1
             # Allow ROS to go to all callbacks.
