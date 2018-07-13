@@ -91,14 +91,14 @@ class IMDbHandler:
                 if debug: print "     1token:\t ", token
                 ## Discarding reserved words for torrent
                 ##    typical descriptions
-                if token in self.list_terms['case_sensitive']:
+                if token in self.case_sensitive:
                     started_bad_section += 1
                     continue
                 if debug: print "       11token:\t ", token
                 
                 ## Discarding generic lower case
                 ##    list of terms
-                if token.lower() in self.list_terms['lower_case']:
+                if token.lower() in self.lower_case:
                     started_bad_section += 1
                     continue
                 if debug: print "       12token:\t ", token
@@ -106,7 +106,7 @@ class IMDbHandler:
                 ## If sentence already shows bad words
                 ##    consider extra words that normally
                 ##    would be normal words
-                if started_bad_section>1 and token in self.list_terms['depends_context']:
+                if started_bad_section>1 and token in self.depends_context:
                     started_bad_section += 1
                     continue
                 if debug: print "       13token:\t ", token
