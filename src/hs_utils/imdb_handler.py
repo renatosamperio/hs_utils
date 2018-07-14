@@ -123,8 +123,8 @@ class IMDbHandler:
 
         except Exception as inst:
           utilities.ParseException(inst)
-        finally:            
-            return new_sentence
+        finally:
+            return u''.join(new_sentence).encode('utf-8').strip()
 
     def skim_title(self, torrent_title):
         splitted = None
