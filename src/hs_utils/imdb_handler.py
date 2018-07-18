@@ -245,17 +245,28 @@ class IMDbHandler:
                 imdb_item.update({'year_matches':year_matches})
                 imdb_item['title'] = u''.join(imdb_item['title']).encode('utf-8').strip()
                 
-                splitted_title_decoded = splitted_title.encode('UTF-8')
                 ## Adding only very similar titles
                 if score > 0.98:
                     updated_imdb.append(imdb_item)
                 else:
-                    ignored_items           += 1
-                    
-                    imdb_title_decoded = imdb_item['title'].decode('utf-8').strip()
-                    rospy.logdebug("      Ignored [%s] vs [%s] = %f"%
-                                      (splitted_title_decoded, imdb_title_decoded, score))
-                    
+                    ignored_items      += 1
+                    try:
+                        imdb_title_decoded = imdb_item['title'].decode('utf-8').strip()
+                        splitted_title = splitted_title.decode('utf-8').strip()
+                        rospy.logdebug("      Ignored [%s] vs [%s] = %f"%
+                                      (splitted_title, imdb_title_decoded, score))
+                    except UnicodeEncodeError as inst:
+                        utilities.ParseException(inst, use_ros=False)
+                        rospy.logwarn( "Log message missing, encoding UTF and ignoring characters")
+                        try:
+                            rospy.loginfo( "Failed to show splitted decoded sentence [%s]"%splitted_title)
+                        except UnicodeDecodeError as inst:
+                            rospy.logwarn( "Still failed to show log (decode error)")
+                            utilities.ParseException(inst, use_ros=False)
+                        except UnicodeEncodeError as inst:
+                            rospy.logwarn( "Still failed to show log (encode error)")
+                            utilities.ParseException(inst, use_ros=False)
+                        
             rospy.logdebug("+   Ignored [%s] item(s)"%(str(ignored_items)))
             
             ## If all items are ignored take the highest one
