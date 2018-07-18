@@ -132,7 +132,19 @@ class IMDbHandler:
                 new_sentence.append(token)
                 if debug: print "     2token:\t ", token
 
-            new_sentence    = ' '.join(new_sentence)
+            ## Merging list tokens into a string
+            try:
+                new_sentence = ' '.join(new_sentence)
+            except UnicodeDecodeError as inst:
+                utilities.ParseException(inst, use_ros=False)
+                rospy.logwarn( "Re-making string by decoding UTF and ignoring characters")
+                try:
+                    new_sentence = [x.decode('utf8', 'ignore') for x in new_sentence]
+                    new_sentence = u' '.join(new_sentence)
+                except UnicodeDecodeError as inst:
+                    rospy.logwarn( "Still failed to show log (decode error)")
+                    utilities.ParseException(inst, use_ros=False)
+
             if debug: print "---> 2new_sentence:\t ", new_sentence
             
             ## Removing non-expected characters
