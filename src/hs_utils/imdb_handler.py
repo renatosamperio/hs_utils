@@ -92,7 +92,12 @@ class IMDbHandler:
                     utilities.ParseException(inst, use_ros=False)
                     
             ## Removing special works from torrent
-            splitted        = sentence.strip().split()
+            ##    and converting if sentence comes
+            ##    with strange characters
+            if not is_utf:
+                splitted    = sentence.decode('utf8', 'ignore').strip().split()
+            
+            splitted    = sentence.strip().split()
             if debug: print "---> 1sentence:\t ", sentence 
 
             ## Split sentence and look if every word
