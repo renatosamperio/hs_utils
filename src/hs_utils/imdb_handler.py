@@ -160,7 +160,7 @@ class IMDbHandler:
         splitted = None
         year_found = None
         try:
-#             
+
             ## Using torrent title until year,
             ##   only if torrent title has a year
             title_has_year  = re.match(r'.*([12].[0-9]{2})', torrent_title)
@@ -177,10 +177,6 @@ class IMDbHandler:
             ## Remove non-required specific characters
             if not splitted.isalpha():
                 splitted = splitted.translate(None, b"-([_#@&*|~`%^<>]").strip()
-
-#             print "  ===> title_has_year:\t ", title_has_year
-#             print "  ===> year_found:\t ", year_found
-#             print "  ===> splitted:\t ", splitted
 
             splitted = splitted.decode('utf-8').strip()
 
