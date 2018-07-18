@@ -275,7 +275,11 @@ class IMDbHandler:
                 
             if total_items == ignored_items:
                 sorted_imdb = sorted(imdb_data, key=itemgetter('score'), reverse=True) 
-                rospy.logwarn("Taking highest score for [%s]"%splitted_title_decoded)
+                try:
+                    rospy.loginfo("Taking highest score for [%s]"%splitted_title)
+                except UnicodeEncodeError as inst:
+                    rospy.logwarn( "Log message missing, encoding UTF and ignoring characters (encode error)")
+                    utilities.ParseException(inst, use_ros=False)
                 imdb_item       = sorted_imdb[0]
                 updated_imdb.append(imdb_item)
             
