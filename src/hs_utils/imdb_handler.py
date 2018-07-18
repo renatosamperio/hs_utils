@@ -70,14 +70,27 @@ class IMDbHandler:
     def clean_sentence(self, sentence, debug=False):
         try:
             new_sentence    = []
+            is_utf          = False
             if self.list_terms is None:
                 rospy.logwarn("Invalid list of terms")
                 return
 
             ## Removing non-expected characters
             if debug: print "---> sentence:\t ", sentence
-            sentence = re.sub('[\[@#$()\]]', '', sentence)
-
+            try:
+                sentence = re.sub('[\[@#$()\]]', '', sentence)
+            except UnicodeDecodeError as inst:
+                utilities.ParseException(inst, use_ros=False)
+                rospy.logwarn( "Failed character substitution, decoding UTF and ignoring characters")
+                try:
+                    sentence = sentence.decode('utf8', 'ignore')
+                    sentence = re.sub('[\[@#$()\]]', '', sentence)
+                    rospy.loginfo( "Sentence changed and removed characters")
+                    is_utf = True
+                except UnicodeDecodeError as inst:
+                    rospy.logwarn( "Still failed to show log (decode error)")
+                    utilities.ParseException(inst, use_ros=False)
+                    
             ## Removing special works from torrent
             splitted        = sentence.strip().split()
             if debug: print "---> 1sentence:\t ", sentence 
