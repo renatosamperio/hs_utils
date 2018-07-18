@@ -195,7 +195,11 @@ class IMDbHandler:
             try:
                 imdb_data       = imdb.search_for_title(title)
             except ValueError:
-                rospy.logwarn('IMDb did not find titles for [%s]'%title)
+                try:
+                    rospy.logwarn('IMDb did not find titles for [%s]'%title)
+                except UnicodeEncodeError as inst:
+                    rospy.logwarn('IMDb did not find titles')
+                    utilities.ParseException(inst, use_ros=False)
                 return
             
             for item in imdb_data:
