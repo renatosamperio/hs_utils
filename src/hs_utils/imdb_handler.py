@@ -16,7 +16,7 @@ from hs_utils import similarity
 from hs_utils.mongo_handler import MongoAccess
 from optparse import OptionParser, OptionGroup
 from operator import itemgetter
-from imdbpie import Imdb
+from imdbpie import Imdb, exceptions
 
 class IMDbHandler:
     def __init__(self, **kwargs):
@@ -190,6 +190,11 @@ class IMDbHandler:
         try:
             try:
                 imdb_data       = imdb.search_for_title(title)
+            except exceptions.ImdbAPIError:
+                rospy.logwarn('IMDB limit has been reached while title was searched, waiting for 5 min') 
+                time.sleep(300)
+                rospy.loginfo('Trying IMDB title search again for [%s]'%title)
+                imdb_data       = imdb.search_for_title(title)
             except ValueError:
                 try:
                     rospy.logwarn('IMDb did not find titles for [%s]'%title)
@@ -305,7 +310,13 @@ class IMDbHandler:
                 if item_added:
                     imdb_id                 = str(imdb_item['imdb_id'])
                     try:
-                        title_genres        = imdb.get_title_genres(imdb_id)
+                        try:
+                            title_genres        = imdb.get_title_genres(imdb_id)
+                        except exceptions.ImdbAPIError:
+                            rospy.logwarn('IMDB limit has been reached while searching genres, waiting for 5 min') 
+                            time.sleep(300)
+                            rospy.loginfo('Trying IMDB genre search again for [%s]'%title)
+                            title_genres        = imdb.get_title_genres(imdb_id)
                         
                         ## Finding genre 
                         if title_genres is not None and 'genres' in title_genres:
