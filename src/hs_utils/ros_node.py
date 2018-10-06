@@ -115,7 +115,7 @@ class Param(object):
                 if "parameter" == key:
                     self.parameter_path = value
                     self.param_value = self.GetParam(self.parameter_path)
-                    if type(self.param_value) == type({}):
+                    if type(self.param_value) == type({}) or type(self.param_value) == type([]):
                         rospy.logdebug('+     Updated to parameter [%s] '%(self.parameter_path))
                     else:
                         rospy.logdebug('+     Updated to parameter [%s] with [%s]'%
