@@ -24,7 +24,7 @@ def ParseException(inst):
 class Publisher:
     def __init__(self, **kwargs):
         try:
-            self.latch          = False
+            self.latch          = True
             self.queue_size     = 1000
             self.message        = None
             self.message_type   = None
