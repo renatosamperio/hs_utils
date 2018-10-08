@@ -135,20 +135,34 @@ class Param(object):
             if rospy.has_param(parameter_path):
                 param_value       = rospy.get_param(parameter_path)
             else:
-                rospy.logwarn('Invalid parameter path [%s]'%parameter_path)
+                rospy.logwarn('Invalid parameter path [%s] to get'%parameter_path)
 
         except Exception as inst:
             ParseException(inst)
         finally:
             return param_value
 
-    def SetParam(self):
-        '''Set ROS parameter by sending values to hive_conf module. It requires
-            a publisher into the topic /HVE_SET_CONFIGURE_PARAMETERS with
-            a message type hive_msgs.Hve_Write_Params
+    def SetParam(self, parameter_path, param_value):
+        '''Set ROS parameter by sending values to hive_conf module.
         '''
         try:
-            i=0
+            ## Set ROS parameters
+            if rospy.has_param(parameter_path):  
+                curr_value = rospy.get_param(parameter_path)
+                if isinstance(curr_value, type(1)):
+                    rospy.logdebug('Setting [%s] as int for value [%s]'%(parameter_path, param_value))
+                    rospy.set_param(parameter_path, int(param_value))
+                elif isinstance(curr_value, type(1.0)):
+                    rospy.logdebug('Setting [%s] as float for value [%s]'%(parameter_path, param_value))
+                    rospy.set_param(parameter_path, float(param_value))
+                elif isinstance(curr_value, type("")):
+                    rospy.logdebug('Setting [%s] as string for value [%s]'%(parameter_path, param_value))
+                    rospy.set_param(parameter_path, str(param_value))
+                else:
+                    rospy.logwarn('Setting parameter with non-defined type [%s]'%str(type(curr_value)))
+                #
+            else:
+                rospy.logwarn('Invalid parameter path [%s] to set'%parameter_path)
         except Exception as inst:
             ParseException(inst)
 
