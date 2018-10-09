@@ -179,6 +179,8 @@ class RosNode(object):
             self.sub_topics             = None
             self.pub_topics             = None
             self.system_params          = None
+            self.bag                    = None
+            self.topicConfParams        = 'smart_parameter_server'
             
             ## ROS stop signal
             rospy.on_shutdown(self.Shutdown)
