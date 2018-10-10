@@ -202,10 +202,23 @@ class RosNode(object):
                 elif "system_params" == key:
                     rospy.logdebug('+     Creating list system parameters')
                     self.system_params = value
+                elif "bag" == key:
+                    rospy.logdebug('+     Creating bag')
+                    self.bag = value
 
             ## Registering subscribers and topics
-            self.Register(self.sub_topics, self.pub_topics, self.system_params)
-            
+            rospy.logdebug('+     Registering given topics')
+            self.Register(self.sub_topics, 
+                          self.pub_topics, 
+                          self.system_params, 
+                          self.SubscribeCallback, 
+                          bag=self.bag)
+
+#             rospy.logdebug('+     Registering configuration parameters')
+#             self.Register([(self.topicConfParams, Hve_Write_Params)],   # subscribers
+#                           [],                                           # publishers
+#                           [],                                           # parameters
+#                           self.SubscribeParams)
         except Exception as inst:
               ParseException(inst)
 
