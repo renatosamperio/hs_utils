@@ -222,17 +222,24 @@ class RosNode(object):
         except Exception as inst:
               ParseException(inst)
 
-    def Register(self, subs, pubs, params):
+    def Register(self, subs, pubs, params, callback, bag=None):
         try:
             if subs is not None:
-                rospy.logdebug('+ Registering subscribers and topics')
-                for topic, message_type in subs:
+                for item in subs:
+                    ## Topic, message type and callback has to be in a fixed position
+                    topic           = item[0]
+                    message_type    = item[1] 
+                    if len(item)>2:
+                        ## Add callback only if it was defined
+                        rospy.logdebug('      Topic [%s] has its own callback'%topic)
+                        callback    = item[2]
+
                     rospy.logdebug('    Registering subscriber [%s]'%topic)
-     
                     sub_item = {topic : Subscriber(topic, 
                                                       message_type, 
                                                       self.lock, 
-                                                      execute=self.SubscribeCallback
+                                                      bag=bag,
+                                                      execute=callback
                                                       )}
                     self.mapped_subs.update(sub_item)
 
