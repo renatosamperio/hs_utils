@@ -22,7 +22,8 @@ class MongoAccess:
     self.component	   = self.__class__.__name__
     self.coll_name     = None
     self.collection    = None
-    self.db	 	       = None
+    self.db            = None
+    self.client        = None
     self.debug	 	   = debug
 
     if self.debug == 0:    
@@ -47,26 +48,26 @@ class MongoAccess:
     try: 
       self.Debug("Generating instance of mongo client")
       # Creating mongo client
-      client = MongoClient(host, port)
+      self.client = MongoClient(host, port)
       
       try:
         # The ismaster command is cheap and does not require auth.
-        client.admin.command('ismaster')
+        self.client.admin.command('ismaster')
       except ConnectionFailure:
         self.Debug("Error: Server not available")
         return result
     
       # Send a query to the server to see if the connection is working.
       try:
-        client.server_info()
+        self.client.server_info()
       except pymongo.errors.ServerSelectionTimeoutError as e:
         logging.error("Unable to connect to %s.", address)
-        client = None
+        self.client = None
 
-      if client is not None:
+      if self.client is not None:
         # Getting instance of database
         self.Debug("Getting instance of database [%s]"%database)
-        self.db = client[database]
+        self.db = self.client[database]
 
         # Getting instance of collection
         self.Debug("Getting instance of collection")
