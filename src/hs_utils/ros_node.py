@@ -293,7 +293,30 @@ class RosNode(object):
               ParseException(inst)
 
     def SubscribeCallback(self, msg, topic):
-        raise Exception('Warning: Method SubscribeCallback() not defined in child class')
+        '''
+        Overloading method to collect incomming messages
+        '''
+        #raise Exception('Warning: Method SubscribeCallback() not defined in child class')
+
+    def PublishCallback(self, msg, topic):
+        '''
+        Deprecated: Overloading method to collect incomming messages
+        '''
+        #raise Exception('Warning: Method PublishCallback() not defined in child class')
+
+    def SubscribeParams(self, msg, topic):
+        '''
+        Configuring automatically given parameters
+        '''
+        try:
+            paramKeys   = self.mapped_params.keys()
+            for param in msg.parameters:
+                if param.full_parameter_path in paramKeys:
+                    path    = param.full_parameter_path
+                    value   = param.parameter_value
+                    self.mapped_params[path].SetParam(path, value)
+        except Exception as inst:
+              ParseException(inst)
 
     def ShutdownCallback(self):
         ''' Shutdown method.
@@ -324,6 +347,9 @@ class RosNode(object):
         except Exception as inst:
               ParseException(inst)
 
+    def GetPublishedTopics(self):
+        return self.mapped_pubs.keys()
+
 class Sample(RosNode):
     def __init__(self, **kwargs):
         try:
@@ -336,6 +362,13 @@ class Sample(RosNode):
         except Exception as inst:
               ParseException(inst)
               
+    def PublishCallback(self, msg, topic):
+        try:
+            message = msg
+            
+        except Exception as inst:
+              ParseException(inst)
+
     def SubscribeCallback(self, msg, topic):
         try:
             message = msg
