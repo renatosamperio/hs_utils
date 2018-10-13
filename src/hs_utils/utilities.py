@@ -6,15 +6,20 @@ import time
 import logging
 import rospy
 
-def ParseException(inst, use_ros=True):
+def ParseException(inst, use_ros='error'):
     ''' Takes out useful information from incoming exceptions'''
     exc_type, exc_obj, exc_tb = sys.exc_info()
     exception_fname= os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
     exception_line = str(exc_tb.tb_lineno) 
     exception_type = str(type(inst))
     exception_desc = str(inst)
-    if use_ros:
+    if use_ros == 'error':
         rospy.logerr("%s: %s in %s:%s"%(exception_type, 
+                exception_desc, 
+                exception_fname,  
+                exception_line ))
+    elif use_ros == 'warn':
+        rospy.logwarn("%s: %s in %s:%s"%(exception_type, 
                 exception_desc, 
                 exception_fname,  
                 exception_line ))
