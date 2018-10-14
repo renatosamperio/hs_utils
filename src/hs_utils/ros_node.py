@@ -328,10 +328,28 @@ class RosNode(object):
               ros_node.ParseException(inst)
 
     def GetParam(self, param_id):
+        '''
+        Collects from ROS memory the available parameter
+        '''
         parameter = None
         try:
+            ## Validate key exists
+            if param_id not in self.mapped_params.keys():
+                rospy.logwarn('Key [%s] not in mapped parameters'%param_id)
+                
+                ## Adding parameter on-the-fly
+                args = {}
+                args.update({'parameter':  param_id})
+                item_pub = {param_id: Param(**args)}
+                self.mapped_params.update(item_pub)
+                rospy.loginfo('Mapped parameter [%s] with [%s]'%(param_id, str(self.mapped_params[param_id].param_value)))
+                return
+
+            ## Returning ROS parameter
+            parameter = self.mapped_params[param_id].GetParam(param_id)
             
-            parameter = self.mapped_params[param_id].GetParam(param_id)   
+            ## Set current online parameter 
+            self.mapped_params[param_id].param_value = parameter
         except Exception as inst:
               ParseException(inst)
         finally:
