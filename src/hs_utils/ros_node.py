@@ -439,7 +439,10 @@ if __name__ == '__main__':
                 action='store_true',
                 default=False,
                 help='Provide debug level')
-    
+    parser.add_option('--anonymous',
+                action='store_true',
+                default=False,
+                help='Execute node anonymously')
     (options, args) = parser.parse_args()
     
     if options.run_sample is None:
@@ -450,9 +453,9 @@ if __name__ == '__main__':
         ## Creating ROS node
         args = {}
         logLevel       = rospy.DEBUG if options.debug else rospy.INFO
-        rospy.init_node('sample', anonymous=False, log_level=logLevel)
-    
-        ## Removing ROS file logging
+        rospy.init_node('sample_node', anonymous=options.anonymous, log_level=logLevel)
+
+        ## Looking for loggers
         if not options.do_ros_file:
             root_handlers = logging.getLoggerClass().root.handlers
             if isinstance(root_handlers, list) and len(root_handlers)>0:
