@@ -93,6 +93,8 @@ class Subscriber:
                     self.execute(data, self.topic)
                 if self.bag is not None:
                     self.bag.write(self.topic, data)
+                    rospy.logdebug(' + Added up bag in [%s] of [%d]'%(self.topic, self.bag.size))
+
         except Exception as inst:
             ParseException(inst)
     
@@ -102,7 +104,7 @@ class Subscriber:
 
 class Param(object):
     '''
-    TODO: Raise exception when a non setup parameter is required
+    This class is an interface for ROS parameters handling
     '''
     def __init__(self, **kwargs):
         try:
@@ -361,7 +363,7 @@ class RosNode(object):
             if topicName in pubTopics:
                 self.mapped_pubs[topicName].publish(msg)
             else:
-                rospy.logwarn('Topic [%s] not found in SLF ros node')
+                rospy.logwarn('Topic [%s] not found in SLF ros node'%topicName)
         except Exception as inst:
               ParseException(inst)
 
@@ -393,7 +395,7 @@ class Sample(RosNode):
             
         except Exception as inst:
               ParseException(inst)
-              
+      
     def Init(self):
         try:
             rospy.Timer(rospy.Duration(10.0), self.Run)
