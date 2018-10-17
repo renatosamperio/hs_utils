@@ -310,26 +310,24 @@ class IMDbHandler:
                 if item_added:
                     imdb_id                 = str(imdb_item['imdb_id'])
                     try:
-                        try:
-                            title_genres        = imdb.get_title_genres(imdb_id)
-                        except exceptions.ImdbAPIError:
-                            rospy.logwarn('IMDB limit has been reached while searching genres, waiting for 5 min') 
-                            time.sleep(300)
-                            rospy.loginfo('Trying IMDB genre search again for [%s]'%title)
-                            title_genres        = imdb.get_title_genres(imdb_id)
-                        
+                        title_genres        = imdb.get_title_genres(imdb_id)
                         ## Finding genre 
                         if title_genres is not None and 'genres' in title_genres:
                             genres_label         = str(', '.join(title_genres['genres']))
                             imdb_item.update({'genres': genres_label})
-
-                    except LookupError as imdb_error:
-                        rospy.logdebug("+   Title genres not found for IMDB id [%s]"%imdb_id)
-                        utilities.ParseException(imdb_error)
+                    except LookupError:
+                        #utilities.ParseException(inst)
+                        rospy.logwarn('IMDB title genres not found for [%s] with [%s]'%
+                                      (imdb_item['title'], imdb_id) )
+                    except exceptions.ImdbAPIError:
+                        rospy.logwarn('IMDB limit has been reached while searching genres, waiting for 5 min') 
+                        time.sleep(300)
+                        rospy.loginfo('Trying IMDB genre search again for [%s]'%title)
+                        title_genres        = imdb.get_title_genres(imdb_id)
                     
                     try:
                         title_info          = imdb.get_title(imdb_id)
-                        
+                    
                         ## Finding image
                         imdb_image_url          = ''
                         if 'image' in title_info['base'].keys():
@@ -453,4 +451,3 @@ if __name__ == '__main__':
     args.update({'list_terms':   options.list_terms})
     
     test_with_db(args)
-
