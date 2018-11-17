@@ -55,17 +55,25 @@ class MongoAccess:
       except ConnectionFailure:
         self.Debug("Error: Server not available")
         return result
+    
+      # Send a query to the server to see if the connection is working.
+      try:
+        client.server_info()
+      except pymongo.errors.ServerSelectionTimeoutError as e:
+        logging.error("Unable to connect to %s.", address)
+        client = None
 
-      # Getting instance of database
-      self.Debug("Getting instance of database [%s]"%database)
-      self.db = client[database]
+      if client is not None:
+        # Getting instance of database
+        self.Debug("Getting instance of database [%s]"%database)
+        self.db = client[database]
 
-      # Getting instance of collection
-      self.Debug("Getting instance of collection")
-      self.collection = self.db[collection]
-      self.coll_name = collection
+        # Getting instance of collection
+        self.Debug("Getting instance of collection")
+        self.collection = self.db[collection]
+        self.coll_name = collection
       
-      result = self.collection is not None
+        result = self.collection is not None
     
     except Exception as inst:
       utilities.ParseException(inst)
