@@ -203,6 +203,35 @@ class MongoAccess:
     except Exception as inst:
         utilities.ParseException(inst)
 
+  def CreateIndex(self, field, type):
+    result = False
+    index_type = pymongo.DESCENDING
+    try: 
+      if self.collection is not None:
+        if type == 'text':
+            index_type = pymongo.TEXT
+        returnValues = self.collection.create_index([(field, index_type)])
+        if returnValues == field+'_'+type:
+            result = True
+            self.Debug("Collection [%s] has created a [%s] index in [%s]"%(self.coll_name, type, field))
+        else:
+            self.Debug("Could not create index [%s] failed"%field)
+    except Exception as inst:
+      utilities.ParseException(inst)
+    finally:
+      return result
+
+  def ListIndexes(self):
+    indexes = []
+    try: 
+      if self.collection is not None:
+        indexes =self.collection.index_information()
+        self.Debug("Got [%d] indexes from [%s]"%(len(indexes), self.coll_name))
+    except Exception as inst:
+      utilities.ParseException(inst)
+    finally:
+      return indexes
+
 def db_handler_call(options):
   ''' Method for calling MongoAccess handler'''
   
