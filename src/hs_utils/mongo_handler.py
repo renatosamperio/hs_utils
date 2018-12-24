@@ -233,6 +233,18 @@ class MongoAccess:
     finally:
       return indexes
 
+  def Close(self):
+    collSize = None
+    try: 
+      if self.client is not None:
+        self.client.close()
+        self.Debug("Mongo client was closed")
+    except Exception as inst:
+      utilities.ParseException(inst)
+    finally:
+      return collSize
+ 
+
 def db_handler_call(options):
   ''' Method for calling MongoAccess handler'''
   
