@@ -35,6 +35,8 @@ import roslib.message
 import rospy
 import re
 import base64
+
+import ros_node
 from pprint import pprint
 
 python_to_ros_type_map = {
@@ -133,7 +135,7 @@ def _convert_to_ros_array(field_type, list_value):
     list_type = list_brackets.sub('', field_type)
     return [_convert_to_ros_type(list_type, value) for value in list_value]
 
-def convert_ros_message_to_dictionary(message):
+def convert_ros_message_to_dictionary(message, debug=False):
     """
     Takes in a ROS message and returns a Python dictionary.
 
@@ -141,27 +143,36 @@ def convert_ros_message_to_dictionary(message):
         ros_message = std_msgs.msg.String(data="Hello, Robot")
         dict_message = convert_ros_message_to_dictionary(ros_message)
     """
-    dictionary = {}
-    message_fields = _get_message_fields(message)
-    for field_name, field_type in message_fields:
-        field_value = getattr(message, field_name)
-        dictionary[field_name] = _convert_from_ros_type(field_type, field_value)
+    try:
+        dictionary = {}
+        message_fields = _get_message_fields(message, debug=debug)
+        for field_name, field_type in message_fields:
+            field_value = getattr(message, field_name)
+            dictionary[field_name] = _convert_from_ros_type(field_type, field_value, debug=debug)
+    
+        return dictionary
+    except Exception as inst:
+          ros_node.ParseException(inst)
 
-    return dictionary
-
-def _convert_from_ros_type(field_type, field_value):
-    if is_ros_binary_type(field_type, field_value):
-        field_value = _convert_from_ros_binary(field_type, field_value)
-    elif field_type in ros_time_types:
-        field_value = _convert_from_ros_time(field_type, field_value)
-    elif field_type in ros_primitive_types:
-        field_value = field_value
-    elif _is_field_type_an_array(field_type):
-        field_value = _convert_from_ros_array(field_type, field_value)
-    else:
-        field_value = convert_ros_message_to_dictionary(field_value)
-
-    return field_value
+def _convert_from_ros_type(field_type, field_value, debug=False):
+    try:
+        if is_ros_binary_type(field_type, field_value):
+            field_value = _convert_from_ros_binary(field_type, field_value)
+        elif field_type in ros_time_types:
+            field_value = _convert_from_ros_time(field_type, field_value)
+        elif field_type in ros_primitive_types:
+            field_value = field_value
+        elif _is_field_type_an_array(field_type):
+            field_value = _convert_from_ros_array(field_type, field_value, debug=debug)
+        else:
+            if False:
+                print "===> field_type:", type(field_type), field_type
+                print "===> field_value:", type(field_value), field_value
+            field_value = convert_ros_message_to_dictionary(field_value, debug=debug)
+    
+        return field_value
+    except Exception as inst:
+          ros_node.ParseException(inst)
 
 
 def is_ros_binary_type(field_type, field_value):
@@ -196,11 +207,16 @@ def _convert_from_ros_time(field_type, field_value):
 def _convert_from_ros_primitive(field_type, field_value):
     return field_value
 
-def _convert_from_ros_array(field_type, field_value):
-    list_type = list_brackets.sub('', field_type)
-    return [_convert_from_ros_type(list_type, value) for value in field_value]
+def _convert_from_ros_array(field_type, field_value, debug=False):
+    try:
+        list_type = list_brackets.sub('', field_type)
+        return [_convert_from_ros_type(list_type, value, debug=debug) for value in field_value]
+    except Exception as inst:
+          ros_node.ParseException(inst)
 
-def _get_message_fields(message):
+def _get_message_fields(message, debug=False):
+    if debug:
+        print "===>message:", type(message)
     return zip(message.__slots__, message._slot_types)
 
 def _is_field_type_an_array(field_type):
