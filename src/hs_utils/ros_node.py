@@ -20,6 +20,7 @@ def ParseException(inst):
                 exception_desc, 
                 exception_fname,  
                 exception_line ))
+  raise(inst)
 
 class Publisher:
     def __init__(self, **kwargs):
