@@ -115,14 +115,15 @@ class Similarity:
                 score = -1
                 return
         
-        ## Scoring measurements
-        score = (complete_phrase+similarity)/2.0
-        
+        ## Getting second measure of similarity
         if base_splitted == other_splitted:
             similarity2 = 1.0
         else:
             similarity2 = self.cosine_sim(base_splitted, other_splitted)
-         
+            
+        ## Scoring measurements
+        score = (similarity2+similarity)/2.0
+
         if debug:
             #rospy.loginfo("===> complete_phrase:\t%s"%complete_phrase)
             rospy.loginfo("===> similarity:\t\t%s"%similarity)
