@@ -77,22 +77,11 @@ class Similarity:
 #         other_splitted = other_splitted.replace('-', ' ')
 #         other_splitted = other_splitted.replace('.', ' ')
         
-        ## Sub-scoring if base is inside other
-        has_same_words = len(base_splitted) == len(other_splitted)
-        is_inside_other= base_splitted.lower() in other_splitted.lower() or other_splitted.lower() in base_splitted.lower()
-        
         if debug:
             rospy.loginfo("===> base:\t\t%s"%base)
             rospy.loginfo("===> other:\t\t%s"%other)
             rospy.loginfo("===> base_splitted:\t%s"%base_splitted)
             rospy.loginfo("===> other_splitted:\t%s"%other_splitted)
-            rospy.loginfo("===> is_inside_other:\t%s"%is_inside_other)
-            rospy.loginfo("===> has_same_words:\t%s"%has_same_words)
-        
-        ## Splitting educated guess with inputs that are
-        ##    self contained and have same number of words
-        complete_phrase = 0.5 if has_same_words else 0.0
-        complete_phrase += 0.5 if is_inside_other else 0.0
         
         ## If both sentences are the same don't do similarity
         if base == other:
@@ -143,6 +132,26 @@ class Similarity:
 #         print "===> score:\t\t", score
 #         print "===> score2:\t\t", score2
 
+        ## Splitting educated guess with inputs that are
+        ##    self contained and have same number of words
+#         complete_phrase = 0.5 if has_same_words else 0.0
+#         complete_phrase += 0.5 if is_inside_other else 0.0
+
+        ## Sub-scoring if base is inside other
+        has_same_words = len(base_splitted) == len(other_splitted)
+        is_inside_other= base_splitted.lower() in other_splitted.lower() or other_splitted.lower() in base_splitted.lower()
+        
+        ## Scoring measurements
+        if has_same_words:
+            score       = (score+1.0)/2.0
+        if is_inside_other:
+            score       = (score+1.0)/2.0
+        
+        if debug:
+            rospy.loginfo("===> is_inside_other:\t%s"%is_inside_other)
+            rospy.loginfo("===> has_same_words:\t%s"%has_same_words)
+            rospy.loginfo("===> last_score:\t\t%s"%score)
+            rospy.loginfo("")
     except Exception as inst:
         utilities.ParseException(inst)
     finally:
