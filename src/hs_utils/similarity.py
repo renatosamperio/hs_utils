@@ -78,9 +78,9 @@ class Similarity:
 #         other_splitted = other_splitted.replace('.', ' ')
         
         if debug:
-            rospy.loginfo("===> base:\t\t%s"%base)
-            rospy.loginfo("===> other:\t\t%s"%other)
-            rospy.loginfo("===> base_splitted:\t%s"%base_splitted)
+            rospy.loginfo("===> base:\t\t\t%s"%base)
+            rospy.loginfo("===> other:\t\t\t%s"%other)
+            rospy.loginfo("===> base_splitted:\t\t%s"%base_splitted)
             rospy.loginfo("===> other_splitted:\t%s"%other_splitted)
         
         ## If both sentences are the same don't do similarity
@@ -90,8 +90,8 @@ class Similarity:
             base_lower = base.lower()
             other_lower = other.lower()
             if debug:
-                rospy.loginfo("===> base.lower:\t%s"%base_lower)
-                rospy.loginfo("===> other.lower:\t%s"%other_lower)
+                rospy.loginfo("===> base.lower:\t\t%s"%base_lower)
+                rospy.loginfo("===> other.lower:\t\t%s"%other_lower)
             try:
                 measure1 = self.cosine_sim(base_lower, other_lower, debug=True)
             except Exception:
@@ -124,10 +124,11 @@ class Similarity:
             similarity2 = self.cosine_sim(base_splitted, other_splitted)
          
         if debug:
-            rospy.loginfo("===> complete_phrase:\t%s"%complete_phrase)
-            rospy.loginfo("===> similarity:\t%s"%similarity)
-            rospy.loginfo("===> similarity2:\t%s"%similarity2)
-            rospy.loginfo("")
+            #rospy.loginfo("===> complete_phrase:\t%s"%complete_phrase)
+            rospy.loginfo("===> similarity:\t\t%s"%similarity)
+            rospy.loginfo("===> similarity2:\t\t%s"%similarity2)
+            rospy.loginfo("===> score:\t\t\t%s"%score)
+            
 #         score2 = (complete_phrase+similarity2)/2.0
 #         print "===> score:\t\t", score
 #         print "===> score2:\t\t", score2
