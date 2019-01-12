@@ -65,14 +65,14 @@ class Similarity:
         ## Removing extra spaces in sentences
         base_splitted = base.split()
         base_splitted = u' '.join(base_splitted).encode('utf-8').strip()
-        base_splitted = base_splitted.translate(None, b"':([_#@&*|~`%^<>").strip()
+        base_splitted = base_splitted.translate(None, b"':([_#@&*|~`%^<>+").strip()
         base_splitted = re.sub('-.', ' ', base_splitted)
 #         base_splitted = base_splitted.replace('-', ' ')
 #         base_splitted = base_splitted.replace('.', ' ')
         
         other_splitted = other.split()
         other_splitted = u' '.join(other_splitted).encode('utf-8').strip()
-        other_splitted = other_splitted.translate(None, b"':([_#@&*|~`%^<>").strip()
+        other_splitted = other_splitted.translate(None, b"':([_#@&*|~`%^<>+").strip()
         other_splitted = re.sub('-.', ' ', other_splitted)
 #         other_splitted = other_splitted.replace('-', ' ')
 #         other_splitted = other_splitted.replace('.', ' ')
