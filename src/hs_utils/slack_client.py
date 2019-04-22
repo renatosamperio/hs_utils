@@ -34,7 +34,7 @@ class SlackHandler(object):
                     self.slack_token = value
 
             self.client         = SlackClient(self.slack_token)
-            rospy.logdebug('+  Initialised slack client')
+            rospy.logdebug('\t * Initialised slack client')
         except Exception as inst:
             utilities.ParseException(inst, logger=self.logger)
 
@@ -46,7 +46,7 @@ class SlackHandler(object):
                     ):
         response = {}
         try:
-            rospy.logdebug("+  Posting new message in channel [%s]"%channel_name)
+            rospy.logdebug("\t * Posting new message in channel [%s]"%channel_name)
             response = self.client.api_call(
                 "chat.postMessage",
                 channel     = channel_name,
@@ -54,7 +54,8 @@ class SlackHandler(object):
                 as_user     = as_user,
                 attachments = attachments,
                 username    = username,
-                icon_emoji  = icon_emoji
+                icon_emoji  = icon_emoji,
+                #blocks      = [{"type": "section", "text": {"type": "plain_text", "text": "Hello world"}}]
             )
         except Exception as inst:
             utilities.ParseException(inst, logger=self.logger)
