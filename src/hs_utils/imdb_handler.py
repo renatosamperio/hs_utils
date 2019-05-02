@@ -373,7 +373,6 @@ class IMDbHandler:
                         imdb_selected.append(imdb_item)
                     except LookupError as imdb_error:
                         rospy.loginfo("+   Title info not found for IMDB id [%s]"%imdb_id)
-                        utilities.ParseException(imdb_error)
 
             item_selected.update({'imdb_info':imdb_selected})
             item_selected.update({'query_title':splitted_title})
