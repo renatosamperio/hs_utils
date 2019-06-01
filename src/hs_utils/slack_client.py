@@ -93,11 +93,13 @@ class SlackHandler(object):
         finally:
             return channel_id
         
-    def ChannelHistory(self, channel_code):
+    def ChannelHistory(self, channel_code, count=100):
         response = None
         try:
             ## Getting channel history
-            response =  self.client.api_call("channels.history", channel=channel_code)
+            response =  self.client.api_call("channels.history", 
+                                             channel=channel_code,
+                                             count=count)
         except Exception as inst:
             utilities.ParseException(inst, use_ros=self.log_level)
         finally:
@@ -162,7 +164,7 @@ if __name__ == '__main__':
                 action='store',
                 default="Sample text message",
                 help='Input slack message')
-    parser.add_option('--channel', '-e',
+    parser.add_option('--channel', '-c',
                 type="string",
                 action='store',
                 default=None,
@@ -187,6 +189,10 @@ if __name__ == '__main__':
                 action='store_true',
                 default=False,
                 help='List of channels')
+    cmds_parser.add_option('--channel_history',
+                action='store_true',
+                default=False,
+                help='Gets history of channel baesd on channel name')
     
     parser.add_option_group(cmds_parser)
     parser.add_option_group(node_parser)
@@ -197,8 +203,11 @@ if __name__ == '__main__':
         parser.error("Slack token was not given, type --slack_token $SLACK_TOKEN")
     
     if options.delete_channel_history and options.channel is None:
-        parser.error("Slack channel was not given, input channel")
+        parser.error("Slack channel was not given, input channel (--channel)")
     
+    if options.channel_history and options.channel is None:
+        parser.error("Slack channel was not given, input channel (--channel)")
+        
     ## Starting ros node for debugging only
     logLevel        = rospy.DEBUG if options.debug else rospy.INFO
     rospy.init_node('slack_client', anonymous=options.anonymous, log_level=logLevel)
@@ -223,3 +232,14 @@ if __name__ == '__main__':
         ok = sh.DeleteChanngelHistory(options.channel)
         if not ok:
             print "Failed to delete history"
+            ## Getting channel code
+    elif options.channel_history:
+        channel_code = sh.FindChannelCode(options.channel)
+        history      = sh.ChannelHistory(channel_code, count=1000)
+        if not history['ok']:
+            print "Failed to delete history"
+        counter = 1
+        for message in history['messages']:
+            pprint(message)
+            print counter," -"*50, counter
+            counter += 1
