@@ -44,7 +44,8 @@ class SlackHandler(object):
                     attachments = None, 
                     username    = '' ,
                     as_user     = True,
-                    icon_emoji  = ''
+                    icon_emoji  = '',
+                    blocks      = None
                     ):
         response = {}
         try:
@@ -57,7 +58,7 @@ class SlackHandler(object):
                 attachments = attachments,
                 username    = username,
                 icon_emoji  = icon_emoji,
-                #blocks      = [{"type": "section", "text": {"type": "plain_text", "text": "Hello world"}}]
+                blocks      = blocks #[{"type": "section", "text": {"type": "plain_text", "text": "Hello world"}}]
             )
         except Exception as inst:
             utilities.ParseException(inst, logger=self.logger)
