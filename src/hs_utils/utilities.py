@@ -5,6 +5,7 @@ import threading
 import time
 import logging
 import rospy
+import unicodedata
 
 def ParseException(inst, use_ros='error'):
     ''' Takes out useful information from incoming exceptions'''
@@ -94,4 +95,29 @@ def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", igno
 
         return key_err + err, output #+ value_err 
     except Exception as inst:
-        sfl_utilities.ParseException(inst)
+        ParseException(inst)
+
+def convert_to_str(item):
+    try:
+        if isinstance(item, list):
+            for one_item in item:
+                #print "  ---> E: ", one_item, "::", type(one_item)
+                if isinstance(one_item, unicode):
+                    one_item = unicodedata.normalize('NFKD', one_item).encode('ascii','ignore')
+                elif isinstance(one_item, dict):
+                    one_item = convert_to_str(one_item)
+        elif isinstance(item, dict):
+            for key in item.keys():
+                #print "  ---> D[",key,"]: ", item[key], "::", type(item[key])
+                if isinstance(item[key], unicode):
+                    item[key] = unicodedata.normalize('NFKD', item[key]).encode('ascii','ignore')
+                    #print "  ---> D2[",key,"]: ", item[key], "::", type(item[key])
+                elif isinstance(item[key], dict):
+                    item[key] = convert_to_str(item[key])
+                elif isinstance(item[key], list):
+                    item[key] = convert_to_str(item[key])
+            
+    except Exception as inst:
+        ParseException(inst)
+    finally:
+        return item
