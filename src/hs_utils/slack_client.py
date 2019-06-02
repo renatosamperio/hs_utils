@@ -124,6 +124,23 @@ class SlackHandler(object):
         finally:
             return channel_size
 
+    def DeleteMessage(self, channel_code, ts):
+        was_deleted = None
+        try:
+            
+            was_deleted = self.client.api_call(
+                "chat.delete", 
+                channel=channel_code, 
+                ts=ts)
+            
+            if not was_deleted['ok']:
+                rospy.logwarn ("%s"% was_deleted['error'])
+                return 
+        except Exception as inst:
+            utilities.ParseException(inst, use_ros=self.log_level)
+        finally:
+            return was_deleted
+
     def DeleteChanngelHistory(self, channel_name):
         was_deleted      = None
         deleted_messages = 0
@@ -136,7 +153,10 @@ class SlackHandler(object):
                 channel_size = len(history['messages'])
             
             for message in history['messages']:
-                was_deleted = self.client.api_call("chat.delete", channel=channel_code, ts=message['ts'])
+                was_deleted = self.client.api_call(
+                    "chat.delete", 
+                    channel=channel_code, 
+                    ts=message['ts'])
                 
                 if not was_deleted['ok']:
                     rospy.logwarn ("%s"% was_deleted['error'])
