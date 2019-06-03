@@ -152,14 +152,24 @@ class SlackHandler(object):
             if 'messages' in history.keys(): 
                 channel_size = len(history['messages'])
             
-            for message in history['messages']:
+            msg_size = len(history['messages'])
+            for i in range(msg_size):
+                message = history['messages'][i]
                 was_deleted = self.client.api_call(
                     "chat.delete", 
                     channel=channel_code, 
                     ts=message['ts'])
                 
                 if not was_deleted['ok']:
-                    rospy.logwarn ("%s"% was_deleted['error'])
+                    if was_deleted['error'] == 'ratelimited':
+                        
+                        i -= 1
+                        if i<0: i = 0
+                        rospy.logdebug("Rate limit reached, waiting for 1.5s")
+                        time.sleep(1.5)
+                        continue
+                    else:
+                        rospy.logwarn ("Error: %s"% was_deleted['error'])
                     return 
                 deleted_messages += 1
                 channel_size     -= 1
