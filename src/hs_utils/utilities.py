@@ -34,7 +34,7 @@ def IsNpArrayConsecutive(data, stepsize=1):
     import numpy as np
     return np.split(data, np.where(np.diff(data) != stepsize)[0]+1)
 
-def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", ignore_keys=[], values=False, output=None):
+def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", ignore_keys=[], use_values=False, output=None):
     """Compare two dictionaries recursively to find non matching elements
 
     Args:
@@ -56,9 +56,11 @@ def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", igno
             output = {'missing': [], 'different':[]}
         
         for k in dict_1.keys():
-            path = old_path + ".%s" % k
-            if not dict_2.has_key(k):
-                key_err += "Key %s%s not in %s\n" % (dict_1_name, path, dict_2_name)
+            path = old_path + ".%s" % k if len(old_path)>0 else "%s" % k
+
+#             print "===> variable:", k
+            if not dict_2.has_key(k) and k not in ignore_keys:
+                key_err += "(1) Key %s not in %s\n" % (path, dict_2_name)
                 output['missing'].append({
                     'key': path,
                     dict_1_name: dict_1[k],
@@ -67,25 +69,29 @@ def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", igno
             else:
                 if isinstance(dict_1[k], dict) and isinstance(dict_2[k], dict):
                     err_output, output = compare_dictionaries(dict_1[k],dict_2[k], dict_1_name, dict_2_name, 
-                                                              path, values=values, output=output)
+                                                              path, use_values=use_values, output=output)
                     err += err_output
-                elif values:
-                    
-                    if dict_1[k] != dict_2[k]:
-                        value_err += "Value of %s%s (%s) not same as %s%s (%s)\n"\
-                            % (dict_1_name, path, dict_1[k], dict_2_name, path, dict_2[k])
-                        output['different'].append({
-                            'key': path,
-                            dict_1_name: dict_1[k],
-                            dict_2_name: dict_2[k]
-                        })
+                elif use_values:
+                    if k not in ignore_keys:
+#                         print "  ===> dict_1["+k+"]:", dict_1[k]
+#                         print "  ===> dict_2["+k+"]:", dict_2[k]
+#                         print "  ===> Equal?", dict_1[k] != dict_2[k]
+                        if dict_1[k] != dict_2[k]:
+                            value_err += "Value of %s.%s (%s) not same as %s.%s (%s)\n"\
+                                % (dict_1_name, path, dict_1[k], dict_2_name, path, dict_2[k])
+                            err += value_err
+                            output['different'].append({
+                                'key': path,
+                                dict_1_name: dict_1[k],
+                                dict_2_name: dict_2[k]
+                            })
         
         for k in dict_2.keys():
-            path = old_path + ".%s" % k
+            path = old_path + ".%s" % k if len(old_path)>0 else "%s" % k
             
             ## Ignore keys that are not in the INIT message but are part of API 
             if not dict_1.has_key(k) and k not in ignore_keys:
-                key_err += "Key %s%s not in %s\n" % (dict_2_name, path, dict_1_name)
+                key_err += "(2) Key %s not in %s\n" % (dict_2_name, path, dict_1_name)
                 new_element = {
                     'key': path,
                     dict_2_name: dict_2[k],
@@ -93,9 +99,10 @@ def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", igno
                 }
                 output['missing'].append(new_element)
 
-        return key_err + err, output #+ value_err 
     except Exception as inst:
         ParseException(inst)
+    finally:
+        return key_err + err, output #+ value_err 
 
 def convert_to_str(item):
     try:
