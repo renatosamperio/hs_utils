@@ -59,32 +59,43 @@ def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", igno
             path = old_path + ".%s" % k if len(old_path)>0 else "%s" % k
 
 #             print "===> variable:", k
-            if not dict_2.has_key(k) and k not in ignore_keys:
-                key_err += "(1) Key %s not in %s\n" % (path, dict_2_name)
-                output['missing'].append({
-                    'key': path,
-                    dict_1_name: dict_1[k],
-                    dict_2_name: None
-                })
-            else:
-                if isinstance(dict_1[k], dict) and isinstance(dict_2[k], dict):
-                    err_output, output = compare_dictionaries(dict_1[k],dict_2[k], dict_1_name, dict_2_name, 
-                                                              path, use_values=use_values, output=output)
-                    err += err_output
-                elif use_values:
-                    if k not in ignore_keys:
-#                         print "  ===> dict_1["+k+"]:", dict_1[k]
-#                         print "  ===> dict_2["+k+"]:", dict_2[k]
-#                         print "  ===> Equal?", dict_1[k] != dict_2[k]
-                        if dict_1[k] != dict_2[k]:
-                            value_err += "Value of %s.%s (%s) not same as %s.%s (%s)\n"\
-                                % (dict_1_name, path, dict_1[k], dict_2_name, path, dict_2[k])
-                            err += value_err
-                            output['different'].append({
-                                'key': path,
-                                dict_1_name: dict_1[k],
-                                dict_2_name: dict_2[k]
-                            })
+#             print "===>",k," not in ignore_keys:", k not in ignore_keys
+            
+            if k not in ignore_keys:
+#                 print "  ===> dict_2.has_key(",k,"):", dict_2.has_key(k)
+                if dict_2.has_key(k):
+#                     print "    ===> key:", k
+#                     print "    ===> dict_1[",k,"]:", dict_1[k]
+#                     print "    ===> dict_2[",k,"]:", dict_2[k]
+#                     print ""
+                    ## key do not exi
+                    if isinstance(dict_1[k], dict) and isinstance(dict_2[k], dict):
+                        err_output, output = compare_dictionaries(dict_1[k],dict_2[k], dict_1_name, dict_2_name, 
+                                                                  path, use_values=use_values, output=output)
+                        err += err_output
+                    elif use_values:
+                        if k not in ignore_keys:
+    #                         print "  ===> dict_1["+k+"]:", dict_1[k]
+    #                         print "  ===> dict_2["+k+"]:", dict_2[k]
+    #                         print "  ===> Equal?", dict_1[k] != dict_2[k]
+                            if dict_1[k] != dict_2[k]:
+                                value_err += "Value of %s.%s (%s) not same as %s.%s (%s)\n"\
+                                    % (dict_1_name, path, dict_1[k], dict_2_name, path, dict_2[k])
+                                err += value_err
+                                output['different'].append({
+                                    'key': path,
+                                    dict_1_name: dict_1[k],
+                                    dict_2_name: dict_2[k]
+                                })
+                    
+                #if not dict_2.has_key(k) and k not in ignore_keys:
+                else:
+                    key_err += "(1) Key %s not in %s\n" % (path, dict_2_name)
+                    output['missing'].append({
+                        'key': path,
+                        dict_1_name: dict_1[k],
+                        dict_2_name: None
+                    })
         
         for k in dict_2.keys():
             path = old_path + ".%s" % k if len(old_path)>0 else "%s" % k
@@ -107,12 +118,13 @@ def compare_dictionaries(dict_1, dict_2, dict_1_name, dict_2_name, path="", igno
 def convert_to_str(item):
     try:
         if isinstance(item, list):
-            for one_item in item:
-                #print "  ---> E: ", one_item, "::", type(one_item)
-                if isinstance(one_item, unicode):
-                    one_item = unicodedata.normalize('NFKD', one_item).encode('ascii','ignore')
-                elif isinstance(one_item, dict):
-                    one_item = convert_to_str(one_item)
+            for i in range(len(item)):
+                #print "  ---> E: ", item[i], "::", type(item[i])
+                if isinstance(item[i], unicode):
+                    item[i] = unicodedata.normalize('NFKD', item[i]).encode('ascii','ignore')
+                    #print "  ---> E.R: ", item[i], "::", type(item[i])
+                elif isinstance(item[i], dict):
+                    item[i] = convert_to_str(item[i])
         elif isinstance(item, dict):
             for key in item.keys():
                 #print "  ---> D[",key,"]: ", item[key], "::", type(item[key])
@@ -122,6 +134,7 @@ def convert_to_str(item):
                 elif isinstance(item[key], dict):
                     item[key] = convert_to_str(item[key])
                 elif isinstance(item[key], list):
+                    #print "---> key:", key
                     item[key] = convert_to_str(item[key])
             
     except Exception as inst:
