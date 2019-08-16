@@ -127,7 +127,9 @@ def convert_to_str(item):
                     item[i] = convert_to_str(item[i])
         elif isinstance(item, dict):
             for key in item.keys():
-                #print "  ---> D[",key,"]: ", item[key], "::", type(item[key])
+                key = key.encode('ascii','ignore')
+#                 print "  ---> D1[",key,"]: ", type(key)
+#                 print "  ---> D2[",key,"]: ", item[key], "::", type(item[key])
                 if isinstance(item[key], unicode):
                     item[key] = unicodedata.normalize('NFKD', item[key]).encode('ascii','ignore')
                     #print "  ---> D2[",key,"]: ", item[key], "::", type(item[key])
@@ -136,6 +138,8 @@ def convert_to_str(item):
                 elif isinstance(item[key], list):
                     #print "---> key:", key
                     item[key] = convert_to_str(item[key])
+        else:
+            print "  ---> F: ", item[i], "::", type(item[i])
             
     except Exception as inst:
         ParseException(inst)
