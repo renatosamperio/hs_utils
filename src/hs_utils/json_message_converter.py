@@ -1,4 +1,5 @@
 import json
+import ros_node
 from hs_utils import message_converter
 
 def convert_json_to_ros_message(message_type, json_message):
@@ -22,6 +23,9 @@ def convert_ros_message_to_json(message, debug=False):
         ros_message = std_msgs.msg.String(data="Hello, Robot")
         json_message = convert_ros_message_to_json(ros_message)
     """
-    dictionary = message_converter.convert_ros_message_to_dictionary(message, debug=debug)
-    json_message = json.dumps(dictionary)
-    return json_message
+    try:
+        dictionary = message_converter.convert_ros_message_to_dictionary(message, debug=debug)
+        json_message = json.dumps(dictionary)
+        return json_message
+    except Exception as inst:
+          ros_node.ParseException(inst)
