@@ -35,6 +35,7 @@ import roslib.message
 import rospy
 import re
 import base64
+import bson
 
 import ros_node
 from pprint import pprint
@@ -79,6 +80,9 @@ def convert_dictionary_to_ros_message(message_type, dictionary):
     for field_name, field_value in dictionary.items():
         if field_name in message_fields:
             field_type = message_fields[field_name]
+            ## Explicit bson conversion to long
+            if isinstance(field_value, bson.int64.Int64):
+                field_value = long(field_value)
             field_value = _convert_to_ros_type(field_type, field_value)
             setattr(message, field_name, field_value)
         else:
