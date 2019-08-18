@@ -27,7 +27,6 @@ class Publisher:
         try:
             self.latch          = True
             self.queue_size     = 1000
-            self.message        = None
             self.message_type   = None
             self.topic          = None
             
@@ -53,9 +52,8 @@ class Publisher:
     
     def publish(self, msg):
         try:
-            self.message    = msg
-            if hasattr(self.message, 'header'):
-                self.message.header.stamp   = rospy.Time.now()
+            if hasattr(msg, 'header'):
+                msg.header.stamp   = rospy.Time.now()
             self.publisher.publish(msg)
         except Exception as inst:
             ParseException(inst)
