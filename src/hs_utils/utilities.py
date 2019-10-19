@@ -145,3 +145,8 @@ def convert_to_str(item):
         ParseException(inst)
     finally:
         return item
+    
+def to_str(s):
+    if type(s) != type(u''):
+        s = s.decode('utf')
+    return s.encode('ascii', 'ignore').decode('ascii')
