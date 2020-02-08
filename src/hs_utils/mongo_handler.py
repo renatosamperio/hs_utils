@@ -91,12 +91,16 @@ class MongoAccess:
     finally:
         return post_id
 
-  def Find(self, condition={}, timeout=False):
+  def Find(self, condition={}, timeout=False, sort_condition=None):
     '''Collects data from database '''
     posts = None
     try: 
       self.Debug("Finding document in collection [%s]"%(self.coll_name))
-      posts = self.collection.find(condition, no_cursor_timeout=timeout)
+      if not sort_condition:
+          posts = self.collection.find(condition, no_cursor_timeout=timeout)
+      else:
+          posts = self.collection.find(condition, no_cursor_timeout=timeout).sort(sort_condition)
+    
     except Exception as inst:
       utilities.ParseException(inst)
     return posts
