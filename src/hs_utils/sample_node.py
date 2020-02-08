@@ -68,9 +68,9 @@ if __name__ == '__main__':
                 action='store_true',
                 default=False,
                 help='Message latching')
-    parser.add_option('--debug',
+    parser.add_option('--debug', '-d',
                 action='store_true',
-                default=False,
+                default=True,
                 help='Provide debug level')
     parser.add_option('--syslog',
                 action='store_true',
