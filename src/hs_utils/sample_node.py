@@ -20,6 +20,9 @@ class Sample(ros_node.RosNode):
     def __init__(self, **kwargs):
         try:
             
+            self.condition  = threading.Condition()
+            self.queue      = Queue.Queue()
+            
             ## Initialising parent class with all ROS stuff
             super(Sample, self).__init__(**kwargs)
             
@@ -30,14 +33,22 @@ class Sample(ros_node.RosNode):
               
     def SubscribeCallback(self, msg, topic):
         try:
-            message = msg
+
+            ## Storing message for queue
+            rospy.logdebug('Got query message')
+            stored_items = (topic, msg)
+            self.queue.put( stored_items )
+            
+            ## Notify data is in the queue
+            with self.condition:
+                self.condition.notifyAll()
             
         except Exception as inst:
               ros_node.ParseException(inst)
       
     def Init(self):
         try:
-            rospy.Timer(rospy.Duration(10.0), self.Run)
+            rospy.Timer(rospy.Duration(0.5), self.Run, oneshot=True)
         except Exception as inst:
               ros_node.ParseException(inst)
               
@@ -50,7 +61,20 @@ class Sample(ros_node.RosNode):
     def Run(self, event):
         ''' Run method '''
         try:
-            rospy.logdebug('+ Publishing data')
+            rospy.logdebug('+ Starting run method')
+            while not rospy.is_shutdown():
+                
+                ## Wait for being notified that a message
+                ##    has arrived
+                with self.condition:
+                    rospy.loginfo('  Waiting for data to come...')
+                    self.condition.wait()
+
+                ## Check if there is something in the queue
+                while not self.queue.empty():
+                    (topic, msg) = self.queue.get()
+                    
+                rospy.logdebug('  Processing data')
             
         except Exception as inst:
               ros_node.ParseException(inst)
