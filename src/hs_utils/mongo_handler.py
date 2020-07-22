@@ -247,8 +247,7 @@ class MongoAccess:
       utilities.ParseException(inst)
     finally:
       return collSize
- 
-
+       
 def db_handler_call(options):
   ''' Method for calling MongoAccess handler'''
   

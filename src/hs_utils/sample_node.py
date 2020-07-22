@@ -96,20 +96,16 @@ if __name__ == '__main__':
                 action='store_true',
                 default=True,
                 help='Provide debug level')
-    parser.add_option('--syslog',
-                action='store_true',
-                default=False,
-                help='Start with syslog logger')
+    parser.add_option('--std_out', '-o',
+                action='store_false',
+                default=True,
+                help='Allowing standard output')
 
     (options, args) = parser.parse_args()
     
     args            = {}
     logLevel        = rospy.DEBUG if options.debug else rospy.INFO
     rospy.init_node('band_search', anonymous=False, log_level=logLevel)
-    
-    ## Sending logging to syslog
-    if options.syslog:
-        logging_utils.update_loggers()
 
     ## Defining static variables for subscribers and publishers
     sub_topics     = [
@@ -127,6 +123,7 @@ if __name__ == '__main__':
     args.update({'latch':           options.latch})
     args.update({'sub_topics':      sub_topics})
     args.update({'pub_topics':      pub_topics})
+    args.update({'allow_std_out':   options.std_out})
     #args.update({'system_params':   system_params})
     
     # Go to class functions that do all the heavy lifting.

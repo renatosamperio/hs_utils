@@ -4,10 +4,13 @@ import rospy
 import sys, os
 import threading
 import time
+import logging
 
 from optparse import OptionParser
 from std_msgs.msg import Bool
 from std_msgs.msg import String
+
+import logging_utils
 
 def ParseException(inst):
   ''' Takes out useful information from incoming exceptions'''
@@ -181,6 +184,7 @@ class RosNode(object):
             self.pub_topics             = None
             self.system_params          = None
             self.bag                    = None
+            self.allow_std_out          = True
             self.topicConfParams        = 'smart_parameter_server'
             
             ## ROS stop signal
@@ -188,7 +192,9 @@ class RosNode(object):
             
             ## Parsing arguments
             for key, value in kwargs.iteritems():
-                if "queue_size" == key:
+                if "allow_std_out" == key:
+                    self.allow_std_out = value
+                elif "queue_size" == key:
                     self.queue_size = value
                     rospy.logdebug('+     Defined queue size of [%d] for all topics'%self.queue_size)
                 elif "latch" == key:
@@ -207,6 +213,11 @@ class RosNode(object):
                     rospy.logdebug('+     Creating bag')
                     self.bag = value
 
+            ## Defining SFL logging standards
+            is_on = 'ON' if self.allow_std_out else 'OFF'
+            rospy.loginfo('Removing streaming logs to console output [%s]'%is_on)
+            logging_utils.update_loggers(allow_std_out=self.allow_std_out)
+            
             ## Registering subscribers and topics
             rospy.logdebug('+     Registering given topics')
             self.Register(self.sub_topics, 

@@ -4,6 +4,7 @@ import os
 import rospy
 from rosgraph.roslogging import RosStreamHandler, _logging_to_rospy_names
 import logging
+import socket
 
 class LoggingFormatter(object):
     def __init__(self):
@@ -39,14 +40,15 @@ def remove_ros_log_rotation():
         if type(handler) == logging.handlers.RotatingFileHandler:
             logging.getLoggerClass().root.handlers = []
 
-def add_syslog_to_rosout():
+def add_syslog_to_rosout(allow_std_out=False):
     rosout_logger   = logging.getLogger('rosout')
 
     # remove the RosStreamHandler, which prints to the console
     # to avoid duplicate entries in journalctl when nodes are started as service
-    if len(rosout_logger.handlers):
+    if allow_std_out and len(rosout_logger.handlers):
         for handler in rosout_logger.handlers:
             if type(handler) == RosStreamHandler:
+                rospy.loginfo("Removing stream handler")
                 rosout_logger.removeHandler(handler)
 
     ## According to RFC3164: https://tools.ietf.org/html/rfc3164
@@ -58,10 +60,14 @@ def add_syslog_to_rosout():
     ## and CRITICAL to the equivalent syslog names, and all 
     ## other level names to 'warning'
     ## https://docs.python.org/3.1/library/logging.html#sysloghandler
-    handler         = logging.handlers.SysLogHandler(address = '/dev/log')
-    handler.setFormatter(LoggingFormatter())
-    rosout_logger.addHandler(handler)
+    try:
+        rospy.loginfo("Starting syslog logger")
+        handler = logging.handlers.SysLogHandler(address = '/dev/log')
+        handler.setFormatter(LoggingFormatter())
+        rosout_logger.addHandler(handler)
+    except socket.error:
+        rospy.loginfo("Syslog handler not connected")
 
-def update_loggers():
+def update_loggers(allow_std_out=True):
     remove_ros_log_rotation()
-    add_syslog_to_rosout()
+    add_syslog_to_rosout(allow_std_out)

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+## sudo pip install scipy
 from __future__ import unicode_literals
 
 import sys, os
@@ -31,7 +33,10 @@ class IMDbHandler:
 
             # Generating instance of strategy  
             for key, value in kwargs.iteritems():
-                if "list_terms" == key:
+                if "imdb" == key:
+                    self.imdb = Imdb()
+                    rospy.logdebug("Created IMDb API handler")
+                elif "list_terms" == key:
                     if value is not None:
                         rospy.logdebug("  +   Loading list of terms")
                         for file in os.listdir(value):
@@ -185,6 +190,179 @@ class IMDbHandler:
         finally:
             return year_found, splitted
 
+    def validate_info(self, record):
+        def exists(record, item):
+            try:
+                if item not in record or not record[item]:
+                    rospy.logdebug('  [%s] not found'%item)
+                    return False
+                return True
+            except Exception as inst:
+                utilities.ParseException(inst)
+                
+        try:
+            result = True
+            result = result and exists(record, 'imdb_id')
+            result = result and exists(record, 'genres')
+            result = result and exists(record, 'image')
+            result = result and exists(record, 'episodes')
+            
+            #print "===> duration.result1:", result, exists(record, 'duration')
+            result = result and exists(record, 'duration')
+            #print "===> duration.result2:", result
+            
+            result = result and exists(record, 'year')
+            result = result and exists(record, 'title')
+            result = result and exists(record, 'plot')
+            result = result and exists(record, 'rating')
+            # result = result or exists(record['rating'], 'old')
+            # result = result or exists(record['rating'], 'mature')
+            # result = result or exists(record['rating'], 'young')
+
+            #print "===> result:", result
+        except Exception as inst:
+            utilities.ParseException(inst)
+        finally:
+            return result
+            
+    def get_info(self, imdb_id):
+        result = None
+        try:
+            if not imdb_id:
+                rospy.logwarn('Invalid IMDB ID')
+                return result
+            
+            #plot_synopsis = self.imdb.get_title_plot_synopsis(imdb_id)
+            #images        = self.imdb.get_title_images(imdb_id)
+            #episodes      = self.imdb.get_title_episodes(imdb_id)
+            #ratings       = self.imdb.get_title_ratings(imdb_id)
+            title         = self.imdb.get_title(imdb_id)
+            genres        = self.imdb.get_title_genres(imdb_id)
+            #print "=== original title:"
+            #pprint(title)
+            
+            ## checking if data belongs to an episode
+            if 'episode' in title['base']:
+                rospy.logdebug('ID [%s] is an episode'%imdb_id)
+                parentTitle= title['base']['parentTitle']['id']
+                parentId   = parentTitle.strip('/').split('/')[1]
+                oldTitle   = title
+                title      = self.imdb.get_title(parentId)
+            #print "=== title:"
+            #pprint(title)
+            result = {
+                'image'        : None,
+                'duration'     : None,
+                'plot'         : None,
+                'episodes'     : None,
+                'genres'       : None,
+                'rating'       : {
+                    'young'    : None,
+                    'mature'   : None,
+                    'old'      : None,
+                    'rating'   : None,
+                    'count'    : None,
+                },
+                'imdb_id'      : imdb_id,
+                'year'         : title['base']['year'],
+                'title'        : title['base']['title'],
+            
+            }
+            
+            ## looking for genres
+            if 'genres' in genres:
+                result['genres'] = genres['genres']
+            else:
+                rospy.logdebug('  Genres not found')
+                
+            ## looking for number of episodres
+            if 'numberOfEpisodes' in title['base']:
+                result['episodes'] = title['base']['numberOfEpisodes']
+            else:
+                rospy.logdebug('  Image not found')
+            
+            ## looking for image
+            if 'image' in title['base']:
+                result['image'] = title['base']['image']
+            else:
+                rospy.logdebug('  Image not found')
+            
+            ## looking for ratings
+            if 'ratingCount' in title['ratings']:
+                result['count'] = title['ratings']['ratingCount']
+            else:
+                rospy.logdebug('  Rating count not found')
+
+            if 'rating' in title['ratings']:
+                #rating = title['ratings']['rating']
+                #print "===> rating:", rating, result['rating']
+                result['rating']['rating'] = title['ratings']['rating']
+            else:
+                rospy.logdebug('  Rating not found')
+
+            if 'ratingsHistograms' in title['ratings']:
+                if 'Aged 18-29' in title['ratings']['ratingsHistograms']:
+                    result['rating']['young'] = title['ratings']['ratingsHistograms']['Aged 18-29']['aggregateRating']
+                else:
+                    rospy.logdebug('  Rating of Aged 18-29 not found')
+    
+                if 'Aged 30-44' in title['ratings']['ratingsHistograms']:
+                    result['rating']['young'] = title['ratings']['ratingsHistograms']['Aged 30-44']['aggregateRating']
+                else:
+                    rospy.logdebug('  Rating of Aged 30-44 not found')
+    
+                if 'Aged 45+' in title['ratings']['ratingsHistograms']:
+                    result['rating']['young'] = title['ratings']['ratingsHistograms']['Aged 45+']['aggregateRating']
+                else:
+                    rospy.logdebug('  Rating of Aged 45+ not found')
+            else:
+                rospy.logdebug(' Ratings Histograms not found')
+                
+            
+            ## looking for plot
+            if 'plot' in title:
+                if 'outline' in title['plot']:
+                    result['plot'] = title['plot']['outline']['text']
+                elif 'summaries' in title['plot'] and \
+                     type(title['plot']['summaries']) is type([]) and \
+                     len(title['plot']['summaries'])>0:
+                    result['plot'] = title['plot']['summaries'][0]['text']
+                else:
+                    rospy.logdebug('  Plot text not found')
+            else:
+                rospy.logdebug('  Plot not found')
+
+            ## looking for running minutes
+            if 'runningTimeInMinutes' in title['base']:
+                result['duration'] = title['base']['runningTimeInMinutes']
+            else:
+                rospy.logdebug('  Running time not found')
+ 
+            ## validating resulting message 
+            if not self.validate_info(result):
+                rospy.logwarn('  Record [%s] is not valid'%imdb_id)
+            else:
+                rospy.logdebug('  Record [%s] is valid'%imdb_id)
+            
+            #print "=== images:"
+            #pprint(images)
+            #print "=== plot_synopsis:"
+            #pprint(plot_synopsis)
+            #print "=== episodes:"
+            #pprint(episodes)
+            #print "=== ratings:"
+            #pprint(ratings)
+            #print "=== genres:"
+            #pprint(genres)
+        except Exception as inst:
+            utilities.ParseException(inst)
+            pprint(title)
+            print "-"*80
+            pprint(oldTitle)
+        finally:
+            return result
+        
+            
     def get_titles(self, imdb, title):
         listed_items = []
         try:
@@ -380,7 +558,7 @@ class IMDbHandler:
           utilities.ParseException(inst)
         finally:
             return item_selected
-
+   
 def test_with_db(args):
     try:
         # Go to class functions that do all the heavy lifting.
@@ -419,7 +597,7 @@ if __name__ == '__main__':
     logging.getLogger('imdbpie').setLevel(logging.getLevelName('DEBUG'))
     usage       = "usage: %prog option1=string option2=bool"
     parser      = OptionParser(usage=usage)
-    parser.add_option('--debug',
+    parser.add_option('--debug', '-d',
                 action='store_true',
                 default=False,
                 help='Provide debug level')
