@@ -7,7 +7,7 @@ import logging
 import rospy
 import unicodedata
 
-def ParseException(inst, use_ros='error'):
+def ParseException(inst, use_ros=None):
     ''' Takes out useful information from incoming exceptions'''
     exc_type, exc_obj, exc_tb = sys.exc_info()
     exception_fname= os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]

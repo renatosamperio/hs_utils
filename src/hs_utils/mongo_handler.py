@@ -156,7 +156,7 @@ class MongoAccess:
     finally:
       return collSize
  
-  def Update(self, condition=None, substitute=None, upsertValue=False):
+  def Update(self, condition=None, substitute=None, upsertValue=False, operator='$set'):
     '''
     Updates data from database. 
     condition    dictionary with lookup condition
@@ -185,11 +185,14 @@ class MongoAccess:
         
         self.Debug("Updating %sdocuments from collection [%s]"%
                           (upsert_label, self.coll_name))
+        operation = {operator: substitute}
+        #print "condition:", condition
+        #print "operation:", operation
+        #print "upsertValue:", upsertValue
         resultSet = self.collection.update(condition,
-                                           {'$set': substitute}, 
+                                           operation, 
                                            upsert=upsertValue, 
                                            multi=False)
-        
         result = resultSet['ok'] == 1
         if not result:
             self.Debug("Warning: Not expected result set:\n%s"%

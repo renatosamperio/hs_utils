@@ -24,11 +24,17 @@ class IMDbHandler:
     def __init__(self, **kwargs):
         ''' '''
         try: 
+            ## setting up variables
+            self.case_sensitive  = []
+            self.lower_case      = []
+            self.depends_context = []
+            self.prefixes        = []
+            
             ## Adding local variables
             self.clean_chars = '[-«\[@#$()\]]'
             self.non_valid  = ['TV episode', 'video game', 'TV short', 'TV series', 'TV mini-series', 'video', 'TV special']
             self.valid = ['feature', 'TV movie']
-            self.list_terms = {'case_sensitive': [], 'lower_case': [], 'depends_context': []}
+            self.list_terms = {'case_sensitive': [], 'prefixes': [], 'lower_case': [], 'depends_context': []}
             self.comparator = similarity.Similarity()
 
             # Generating instance of strategy  
@@ -38,16 +44,23 @@ class IMDbHandler:
                     rospy.logdebug("Created IMDb API handler")
                 elif "list_terms" == key:
                     if value is not None:
-                        rospy.logdebug("  +   Loading list of terms")
+                        rospy.logdebug("  +   Loading list of terms from [%s]"%value)
                         for file in os.listdir(value):
                             if file.endswith(".txt"):
                                 file_path = os.path.join(value, file)
-                                self.list_terms.update({file[:-4]: self.load_terms(file_path)})
+                                key_name = file[:-4]
+                                self.list_terms.update({key_name: self.load_terms(file_path)})
+                                rospy.loginfo ("Loaded terms file [%s] with [%d] words"%(key_name, len(self.list_terms[key_name])))
 
             ## Converting list of termins into UTF-8
-            self.case_sensitive  = [item.decode('utf8') for item in self.list_terms['case_sensitive']]
-            self.lower_case      = [item.decode('utf8') for item in self.list_terms['lower_case']]
-            self.depends_context = [item.decode('utf8') for item in self.list_terms['depends_context']]
+            if self.list_terms['case_sensitive']:
+                self.case_sensitive  = [item.decode('utf8') for item in self.list_terms['case_sensitive']]
+            if self.list_terms['lower_case']:
+                self.lower_case      = [item.decode('utf8') for item in self.list_terms['lower_case']]
+            if self.list_terms['depends_context']:
+                self.depends_context = [item.decode('utf8') for item in self.list_terms['depends_context']]
+            if self.list_terms['prefixes']:
+                self.prefixes        = [item.decode('utf8') for item in self.list_terms['prefixes']]
 
         except Exception as inst:
             utilities.ParseException(inst)
@@ -73,6 +86,15 @@ class IMDbHandler:
           utilities.ParseException(inst)
     
     def clean_sentence(self, sentence, debug=False):
+        def is_prefix(word):
+            try:
+                for idx, prefix in enumerate(self.prefixes):
+                    if word.lower().startswith(prefix.lower() ):
+                        return True
+                return False
+            except Exception as inst:
+              utilities.ParseException(inst)
+                
         try:
             new_sentence    = []
             is_utf          = False
@@ -109,7 +131,7 @@ class IMDbHandler:
             ##    is in the special list of characters
             ##    to remove.
             started_bad_section = 0
-            for token in splitted:
+            for idx, token in enumerate(splitted):
                 
                 if debug: print "     1token:\t ", token
                 ## Discarding reserved words for torrent
@@ -126,14 +148,21 @@ class IMDbHandler:
                     continue
                 if debug: print "       12token:\t ", token
                 
+                ## remove all tokens that start with
+                ## identified prefixes
+                if is_prefix( token.lower() ) :
+                    started_bad_section += 1
+                    continue
+                if debug: print "       13token:\t ", token
+
                 ## If sentence already shows bad words
                 ##    consider extra words that normally
                 ##    would be normal words
                 if started_bad_section>1 and token in self.depends_context:
                     started_bad_section += 1
                     continue
-                if debug: print "       13token:\t ", token
-
+                if debug: print "       14token:\t ", token
+                
                 new_sentence.append(token)
                 if debug: print "     2token:\t ", token
 
@@ -225,7 +254,7 @@ class IMDbHandler:
         finally:
             return result
             
-    def get_info(self, imdb_id):
+    def get_info(self, imdb_id, do_series=None):
         result = None
         try:
             if not imdb_id:
@@ -234,16 +263,15 @@ class IMDbHandler:
             
             #plot_synopsis = self.imdb.get_title_plot_synopsis(imdb_id)
             #images        = self.imdb.get_title_images(imdb_id)
-            #episodes      = self.imdb.get_title_episodes(imdb_id)
             #ratings       = self.imdb.get_title_ratings(imdb_id)
             title         = self.imdb.get_title(imdb_id)
             genres        = self.imdb.get_title_genres(imdb_id)
             #print "=== original title:"
-            #pprint(title)
             
             ## checking if data belongs to an episode
             if 'episode' in title['base']:
-                rospy.logdebug('ID [%s] is an episode'%imdb_id)
+                print(' + ID [%s] is an episode'%imdb_id)
+                rospy.logwarn('ID [%s] is an episode'%imdb_id)
                 parentTitle= title['base']['parentTitle']['id']
                 parentId   = parentTitle.strip('/').split('/')[1]
                 oldTitle   = title
@@ -361,8 +389,7 @@ class IMDbHandler:
             pprint(oldTitle)
         finally:
             return result
-        
-            
+
     def get_titles(self, imdb, title):
         listed_items = []
         try:
@@ -558,7 +585,39 @@ class IMDbHandler:
           utilities.ParseException(inst)
         finally:
             return item_selected
-   
+
+def search_title(args):
+    try:
+        
+        pprint(args)
+        title = args['search_title']
+        list_terms = '/home/renato/workspace/projects/home_services/src/imdb_collector/config/'
+        args = {'list_terms':   list_terms}
+        ih = IMDbHandler(**args)
+        year_found=None
+        data = ih.get_imdb_best_title(title, year_found=year_found)
+        #ih = IMDbHandler(**args)
+        #ih = imdb_handler.IMDbHandler(**args)
+        #print("  + Created IMDb handler")
+        #print("  + Searching for best title [%s]"%title)
+        #data   = ih.get_titles(imdb_handler, title)
+        pprint(data)
+    except Exception as inst:
+        utilities.ParseException(inst)
+
+def search(args):
+    try:
+        imdb_id = args['imdb_id']
+        imdb_handler = IMDbHandler(**args)
+        print("  + Created IMDb handler")
+        print("  + Searching for [%s]"%imdb_id)
+        
+        series = args['do_series'] if args['do_series'] else None
+        data   = imdb_handler.get_info(imdb_id, do_series=series)
+        pprint(data)
+    except Exception as inst:
+        utilities.ParseException(inst)
+        
 def test_with_db(args):
     try:
         # Go to class functions that do all the heavy lifting.
@@ -606,25 +665,55 @@ if __name__ == '__main__':
                 action='store',
                 default=None,
                 help='Input list of term path')
-    
+    parser.add_option('--std_out', '-o',
+                action='store_false',
+                default=True,
+                help='Allowing standard output')
+    operations = OptionGroup(parser, "Inline operations",
+                    "Use to search directly from IMDB data")
+    operations.add_option('--search','-s',
+                type="string",
+                action='store',
+                default=None,
+                help='Search for IMDB ID')
+    operations.add_option('--episodes','-e',
+                action='store_true',
+                default=False,
+                help='Search for episode information')
+    operations.add_option('--search_title', '-t',
+                type="string",
+                action='store',
+                default=None,
+                help='Search for best title')
+    operations.add_option('--db',
+                action='store_true',
+                default=False,
+                help='Test local DB')
+    parser.add_option_group(operations)
     (options, args) = parser.parse_args()
     
-    if options.list_terms is None:
-       parser.error("Missing required option: --list_terms='valid_path to list of terms'")
-
     args            = {}
-    logLevel        = rospy.DEBUG if options.debug else rospy.INFO
-    rospy.init_node('test_imdb_handler', anonymous=False, log_level=logLevel)
-
-    ## Removing ROS file logging
-    root_handlers = logging.getLoggerClass().root.handlers
-    if isinstance(root_handlers, list) and len(root_handlers)>0:
-        handler = root_handlers[0]
-        if type(handler) == logging.handlers.RotatingFileHandler:
-            rospy.logwarn("Shutting down file log handler")
-            logging.getLoggerClass().root.handlers = []
-
-    ## Defining arguments
-    args.update({'list_terms':   options.list_terms})
+    args.update({'allow_std_out': options.std_out})
+    args.update({'do_series':     options.episodes})
+    args.update({'imdb':          True})
     
-    test_with_db(args)
+    if options.search is not None:
+        args.update({'imdb_id':       options.search})
+        search(args)
+        
+    if options.search_title is not None:
+        args.update({'search_title':  options.search_title})
+        search_title(args)
+        
+    if options.db:
+        print "Testing IMDB in local database"
+        if options.list_terms is None:
+           parser.error("Missing required option: --list_terms='valid_path to list of terms'")
+
+        args            = {}
+        logLevel        = rospy.DEBUG if options.debug else rospy.INFO
+        rospy.init_node('test_imdb_handler', anonymous=False, log_level=logLevel)
+    
+        ## Defining arguments
+        args.update({'list_terms':    options.list_terms})        
+        test_with_db(args)
