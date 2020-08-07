@@ -19,22 +19,35 @@ from hs_utils.mongo_handler import MongoAccess
 from optparse import OptionParser, OptionGroup
 from operator import itemgetter
 from imdbpie import Imdb, exceptions
+from imdb import IMDb
 
 class IMDbHandler:
     def __init__(self, **kwargs):
         ''' '''
         try: 
+            ## search IMDB engine
+            self.ia = IMDb()
+            
             ## setting up variables
             self.case_sensitive  = []
             self.lower_case      = []
             self.depends_context = []
             self.prefixes        = []
+            self.keywords        = []
+            self.do_not_include  = []
             
             ## Adding local variables
             self.clean_chars = '[-«\[@#$()\]]'
             self.non_valid  = ['TV episode', 'video game', 'TV short', 'TV series', 'TV mini-series', 'video', 'TV special']
             self.valid = ['feature', 'TV movie']
-            self.list_terms = {'case_sensitive': [], 'prefixes': [], 'lower_case': [], 'depends_context': []}
+            self.list_terms = {
+                'case_sensitive': [], 
+                'prefixes': [], 
+                'lower_case': [], 
+                'depends_context': [], 
+                'do_not_include': [], 
+                'keywords': []
+            }
             self.comparator = similarity.Similarity()
 
             # Generating instance of strategy  
@@ -49,29 +62,44 @@ class IMDbHandler:
                             if file.endswith(".txt"):
                                 file_path = os.path.join(value, file)
                                 key_name = file[:-4]
-                                self.list_terms.update({key_name: self.load_terms(file_path)})
+                                
+                                ## split each line in the file
+                                splitting = False if key_name == 'do_not_include' else True
+                                self.list_terms.update({key_name: self.load_terms(file_path, split_lines=splitting)})
                                 rospy.loginfo ("Loaded terms file [%s] with [%d] words"%(key_name, len(self.list_terms[key_name])))
 
             ## Converting list of termins into UTF-8
             if self.list_terms['case_sensitive']:
-                self.case_sensitive  = [item.decode('utf8') for item in self.list_terms['case_sensitive']]
+                self.case_sensitive = [item.decode('utf8') for item in self.list_terms['case_sensitive']]
             if self.list_terms['lower_case']:
-                self.lower_case      = [item.decode('utf8') for item in self.list_terms['lower_case']]
+                self.lower_case     = [item.decode('utf8') for item in self.list_terms['lower_case']]
             if self.list_terms['depends_context']:
-                self.depends_context = [item.decode('utf8') for item in self.list_terms['depends_context']]
+                self.depends_context= [item.decode('utf8') for item in self.list_terms['depends_context']]
             if self.list_terms['prefixes']:
-                self.prefixes        = [item.decode('utf8') for item in self.list_terms['prefixes']]
+                self.prefixes       = [item.decode('utf8') for item in self.list_terms['prefixes']]
+            if self.list_terms['do_not_include']:
+                self.do_not_include = [item.decode('utf8') for item in self.list_terms['do_not_include']]
+            if self.list_terms['keywords']:
+                self.keywords       = [item.decode('utf8') for item in self.list_terms['keywords']]
 
         except Exception as inst:
             utilities.ParseException(inst)
 
-    def load_terms(self, fileName):
+    def load_terms(self, fileName, split_lines=True):
+        result = None
         try:
             with open(fileName, 'r') as file:
-                return file.read().strip().split()
+                result = file.read().strip()
+                
+                if split_lines:
+                    result = result.split()
+                else:
+                    result = result.split("\n")
                 
         except Exception as inst:
             utilities.ParseException(inst)
+        finally:
+            return result
 
     def list_values(self, new_item, key):
         try:
@@ -85,16 +113,28 @@ class IMDbHandler:
         except Exception as inst:
           utilities.ParseException(inst)
     
-    def clean_sentence(self, sentence, debug=False):
+    def clean_sentence(self, sentence, keywords=[], debug=False):
         def is_prefix(word):
             try:
                 for idx, prefix in enumerate(self.prefixes):
                     if word.lower().startswith(prefix.lower() ):
-                        return True
-                return False
+                        return prefix
+                return None
             except Exception as inst:
               utilities.ParseException(inst)
                 
+        def do_not_include(word, search_list):
+            result=[]
+            try:
+                for idx, unwanted in enumerate(search_list):
+                    if unwanted in sentence:
+                        result.append(unwanted)
+                return False
+            except Exception as inst:
+                utilities.ParseException(inst)
+            finally:
+                return result
+
         try:
             new_sentence    = []
             is_utf          = False
@@ -105,7 +145,7 @@ class IMDbHandler:
             ## Removing non-expected characters
             if debug: print "---> sentence:\t ", sentence
             try:
-                sentence = re.sub('[\[@#$()\]]', '', sentence)
+                sentence = re.sub('–[\[@#$()\]]', '', sentence)
             except UnicodeDecodeError as inst:
                 utilities.ParseException(inst, use_ros=False)
                 rospy.logwarn( "Failed character substitution, decoding UTF and ignoring characters")
@@ -117,7 +157,16 @@ class IMDbHandler:
                 except UnicodeDecodeError as inst:
                     rospy.logwarn( "Still failed to show log (decode error)")
                     utilities.ParseException(inst, use_ros=False)
-                    
+
+            ## start by removing any word or phrase 
+            ## contained in the "do_not_include" list
+            not_wanted_words = do_not_include(sentence, self.do_not_include)
+            if not_wanted_words:
+                for word in not_wanted_words:
+                    sentence = sentence.replace(word,'')
+                    if debug: print "     0remove:\t ", word
+            
+            #print "\t::: :::", sentence,"::: :::"
             ## Removing special works from torrent
             ##    and converting if sentence comes
             ##    with strange characters
@@ -133,6 +182,7 @@ class IMDbHandler:
             started_bad_section = 0
             for idx, token in enumerate(splitted):
                 
+                #print "===    token:", token, token == '1'
                 if debug: print "     1token:\t ", token
                 ## Discarding reserved words for torrent
                 ##    typical descriptions
@@ -140,6 +190,7 @@ class IMDbHandler:
                     started_bad_section += 1
                     continue
                 if debug: print "       11token:\t ", token
+                #print "===    case_sensitive,token:", token, token == '1'
                 
                 ## Discarding generic lower case
                 ##    list of terms
@@ -147,25 +198,36 @@ class IMDbHandler:
                     started_bad_section += 1
                     continue
                 if debug: print "       12token:\t ", token
+                #print "===    lower_case,token:", token, token == '1'
                 
                 ## remove all tokens that start with
                 ## identified prefixes
-                if is_prefix( token.lower() ) :
+                if is_prefix( token.lower()) :
                     started_bad_section += 1
                     continue
                 if debug: print "       13token:\t ", token
-
+                #print "===    is_prefix,token:", token, token == '1'
+                
+                ## Keep some of the words for later
+                if token in self.keywords:
+                    keywords.append(str(token))
+                    #print "--- ---keywords:", keywords
+                    continue
+                if debug: print "       14oken:\t ", token
+                #print "===    lower_case,token:", token, token == '1'
+                
                 ## If sentence already shows bad words
                 ##    consider extra words that normally
                 ##    would be normal words
                 if started_bad_section>1 and token in self.depends_context:
                     started_bad_section += 1
                     continue
-                if debug: print "       14token:\t ", token
+                if debug: print "       15token:\t ", token
                 
                 new_sentence.append(token)
                 if debug: print "     2token:\t ", token
-
+                #print "=== new_sentence:", new_sentence
+            
             ## Merging list tokens into a string
             try:
                 new_sentence = ' '.join(new_sentence)
@@ -178,7 +240,6 @@ class IMDbHandler:
                 except UnicodeDecodeError as inst:
                     rospy.logwarn( "Still failed to show log (decode error)")
                     utilities.ParseException(inst, use_ros=False)
-
             if debug: print "---> 2new_sentence:\t ", new_sentence
             
             ## Removing non-expected characters
@@ -186,7 +247,8 @@ class IMDbHandler:
             if debug: print "---> 3new_sentence:\t ", new_sentence
 
         except Exception as inst:
-          utilities.ParseException(inst)
+            print "??????!!!!!"
+            utilities.ParseException(inst)
         finally:
             return u''.join(new_sentence).encode('utf-8').strip()
 
@@ -234,7 +296,7 @@ class IMDbHandler:
             result = result and exists(record, 'imdb_id')
             result = result and exists(record, 'genres')
             result = result and exists(record, 'image')
-            result = result and exists(record, 'episodes')
+            #result = result and exists(record, 'episodes')
             
             #print "===> duration.result1:", result, exists(record, 'duration')
             result = result and exists(record, 'duration')
@@ -276,8 +338,7 @@ class IMDbHandler:
                 parentId   = parentTitle.strip('/').split('/')[1]
                 oldTitle   = title
                 title      = self.imdb.get_title(parentId)
-            #print "=== title:"
-            #pprint(title)
+
             result = {
                 'image'        : None,
                 'duration'     : None,
@@ -292,11 +353,23 @@ class IMDbHandler:
                     'count'    : None,
                 },
                 'imdb_id'      : imdb_id,
-                'year'         : title['base']['year'],
+                #'year'         : title['base']['year'],
                 'title'        : title['base']['title'],
             
             }
             
+            if do_series:
+                episodes  = self.imdb.get_title_episodes(imdb_id)
+                result['episodes'] = episodes
+                info = self.imdb.get_title_episodes_detailed(imdb_id=imdb_id)
+                print "- "*20
+                pprint(info)
+                print "- "*20
+            
+            ## looking for year
+            if 'year' in title['base']:
+                result.update({'year': title['base']['year']})
+
             ## looking for genres
             if 'genres' in genres:
                 result['genres'] = genres['genres']
@@ -307,14 +380,14 @@ class IMDbHandler:
             if 'numberOfEpisodes' in title['base']:
                 result['episodes'] = title['base']['numberOfEpisodes']
             else:
-                rospy.logdebug('  Image not found')
+                rospy.logdebug('  Number of episode not found')
             
             ## looking for image
             if 'image' in title['base']:
                 result['image'] = title['base']['image']
             else:
                 rospy.logdebug('  Image not found')
-            
+
             ## looking for ratings
             if 'ratingCount' in title['ratings']:
                 result['count'] = title['ratings']['ratingCount']
@@ -382,6 +455,17 @@ class IMDbHandler:
             #pprint(ratings)
             #print "=== genres:"
             #pprint(genres)
+            
+            if False:
+                if 'soundtrack' in title: del title['soundtrack']
+                if 'similarities' in title: del title['similarities']
+                if 'ratings' in title: del title['ratings']
+                if 'filmingLocations' in title: del title['filmingLocations']
+                if '@type' in title: del title['@type']
+                if 'metacriticScore' in title: del title['metacriticScore']
+                
+                pprint(title)
+                print "-"*80
         except Exception as inst:
             utilities.ParseException(inst)
             pprint(title)
@@ -586,6 +670,18 @@ class IMDbHandler:
         finally:
             return item_selected
 
+def search_extra(title):
+    try:
+        list_terms = '/home/renato/workspace/projects/home_services/src/imdb_collector/config/'
+        args = {'list_terms':   list_terms}
+        ih = IMDbHandler(**args)
+        print "QUERY:", title
+        data = ih.ia.search_movie_advanced(title)
+        print "RESULT:"
+        pprint(data)
+    except Exception as inst:
+        utilities.ParseException(inst)
+
 def search_title(args):
     try:
         
@@ -617,7 +713,25 @@ def search(args):
         pprint(data)
     except Exception as inst:
         utilities.ParseException(inst)
-        
+
+def clean_title(title, debug=False):
+    #s = "Institute (Gecko Theatre Company) (1280x720p HD, 50fps, soft Eng subs)"
+    list_terms = '/home/renato/workspace/projects/home_services/src/imdb_collector/config/'
+    list_terms = '/opt/home_services/src/home_services/src/imdb_collector/config'
+    args = {
+        'list_terms':list_terms,
+        'imdb':      True
+    }
+    imdb_handler = IMDbHandler(**args)
+    keywords     = []
+    #print "CLEANING:", title
+    title = title.replace('.', ' ').strip()
+    mopped = imdb_handler.clean_sentence(title, keywords, debug=debug).strip(' -')
+    #print "RESULT:"
+    #print "\t",mopped
+    #print "\t",keywords
+    print(mopped)
+
 def test_with_db(args):
     try:
         # Go to class functions that do all the heavy lifting.
@@ -654,12 +768,14 @@ def test_with_db(args):
 
 if __name__ == '__main__':
     logging.getLogger('imdbpie').setLevel(logging.getLevelName('DEBUG'))
+    logging.getLogger('imdbpy.parser.http').setLevel(logging.getLevelName('DEBUG'))
+    
     usage       = "usage: %prog option1=string option2=bool"
     parser      = OptionParser(usage=usage)
     parser.add_option('--debug', '-d',
                 action='store_true',
                 default=False,
-                help='Provide debug level')
+                help='Input debug level')
     parser.add_option('--list_terms',
                 type="string",
                 action='store',
@@ -685,6 +801,16 @@ if __name__ == '__main__':
                 action='store',
                 default=None,
                 help='Search for best title')
+    operations.add_option('--clean_title', '-c',
+                type="string",
+                action='store',
+                default=None,
+                help='Clean title')
+    operations.add_option('--search_extra',
+                type="string",
+                action='store',
+                default=None,
+                help='Search extra IMDB title')
     operations.add_option('--db',
                 action='store_true',
                 default=False,
@@ -702,8 +828,14 @@ if __name__ == '__main__':
         search(args)
         
     if options.search_title is not None:
-        args.update({'search_title':  options.search_title})
+        args.update({'title':  options.search_title})
         search_title(args)
+        
+    if options.clean_title is not None:
+        clean_title(options.clean_title, debug=options.debug)
+        
+    if options.search_extra is not None:
+        search_extra(options.search_extra)
         
     if options.db:
         print "Testing IMDB in local database"
@@ -717,3 +849,4 @@ if __name__ == '__main__':
         ## Defining arguments
         args.update({'list_terms':    options.list_terms})        
         test_with_db(args)
+    

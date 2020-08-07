@@ -11,7 +11,7 @@ import re
 from optparse import OptionParser
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-nltk.download('punkt') # if necessary...
+#nltk.download('punkt') # if necessary...
 
 class Similarity:
   def __init__(self, **kwargs):
