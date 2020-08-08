@@ -145,13 +145,14 @@ class IMDbHandler:
             ## Removing non-expected characters
             if debug: print "---> sentence:\t ", sentence
             try:
-                sentence = re.sub('–[\[@#$()\]]', '', sentence)
+                sentence = sentence.decode('utf-8', 'ignore').strip() 
+                sentence = re.sub('[–\[\]@#$+,()]', '', sentence)
             except UnicodeDecodeError as inst:
                 utilities.ParseException(inst, use_ros=False)
                 rospy.logwarn( "Failed character substitution, decoding UTF and ignoring characters")
                 try:
                     sentence = sentence.decode('utf8', 'ignore')
-                    sentence = re.sub('[\[@#$()\]]', '', sentence)
+                    sentence = re.sub('[–\[\]@#$+,()]', '', sentence)
                     rospy.loginfo( "Sentence changed and removed characters")
                     is_utf = True
                 except UnicodeDecodeError as inst:
@@ -171,7 +172,7 @@ class IMDbHandler:
             ##    and converting if sentence comes
             ##    with strange characters
             if not is_utf:
-                splitted    = sentence.decode('utf8', 'ignore').strip().split()
+                splitted    = sentence.strip().split()
             
             splitted    = sentence.strip().split()
             if debug: print "---> 1sentence:\t ", sentence 

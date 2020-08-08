@@ -18,12 +18,13 @@ class TitleInfoParser:
                 'episode_info':  r"(?:s|season)(\d{2})(?:e|x|episode|\n)(\d{2})",
                 'date':          r'(\d{4}[+\s]\d{2}[+\s]\d{2})',
                 'ext_date':      "(\d{2}\D|$).[+\s](?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|(Nov|Dec)(?:ember)?)[+\s](?:19[7-9]\d|2\d{3})",
-                'season_part':   '(Series[+\s](\d{1,2})*)*([+\s]*(Part[+\s](\d{1,2}|[a-zA-Z]+)))',
-                'single_season': '((S(\d{2})(-.*|$|)+)(E(\d{2})|$)*)',
+                'season_part':   '((Series[+\s](\d{1,2})*)*)([+\s]*(Part(e?)[+\s](\d{1,2}|[a-zA-Z]+)))',
+                'single_season': '((S(\d{2})[+\s]*)+(-.*|$|[+\s]*)+)(E(\d{2})|$)*',
                 'single_date':   '(\d{4}[+\s]?)((\d{2})|$)?',
                 'single_series': '(Series[+\s](\d{1,2})*)([\s]?|$)',
                 'single_episode': '(E(\d{2}).+([+\s]?|$))'
             }
+
             
             for key, value in kwargs.iteritems():
                 if "pattens" == key:
@@ -177,7 +178,7 @@ class TitleInfoParser:
             if has_info:
                 rospy.logdebug('  Looking for parts sections')
                 start,end = has_info.span()
-                section   = mopped[start:end]
+                section   = mopped[start:end].strip()
                 mopped    = mopped[:start]+ mopped[end:]
                 mopped    = mopped.strip()
                 part,total_parts= section.split('of')
@@ -199,28 +200,41 @@ class TitleInfoParser:
                 rospy.logdebug('  Looking for season/part explanation')
                 
                 start,end  = has_info.span()
-                groups     = mopped[start:end]
+                sections   = mopped[start:end]
                 mopped     = mopped[:start]+ mopped[end:]
                 mopped     = mopped.strip()
                 season,part='',''
-                if 'Part' in groups:
-                    split_idx = groups.find('Part')
-
-                    if split_idx>0:
-                        season = groups[:split_idx]
-                        part   = groups[split_idx:]
-                        
-                    else:
-                        season = groups
-                else:
-                    part = groups
-                    
                 
-                return  {
+                ## this regex can give only the Part side
+                ## therefore, season has to be dismissed
+                if 'Part' in sections:
+                    split_idx = sections.find('Part')
+
+                    ## we need to split result into season
+                    ## and part sections. 
+                    if split_idx>0:
+                        season = sections[:split_idx].strip()
+                        part   = sections[split_idx:].strip()
+                    
+                    ## assign season section only
+                    else:
+                        season = sections
+                ## assign part section only 
+                else:
+                    part = sections
+                
+                ## edit sections in different stages,
+                ## adding only the part section
+                result = {
                     'title':  mopped,
                     'part':   part,
-                    'season': season,
                 }
+                
+                ## adding the season section if it 
+                ## would be found
+                if season:
+                    result.update({'season':season})
+                return result
             return None
         except Exception as inst:
               ros_node.ParseException(inst)
@@ -232,7 +246,7 @@ class TitleInfoParser:
             if has_info:
                 rospy.logdebug('  Looking for single season')
                 start,end = has_info.span()
-                section   = mopped[start:end]
+                section   = mopped[start:end].strip()
                 mopped    = mopped[:start]+ mopped[end:]
                 mopped    = mopped.strip()
                 
@@ -276,7 +290,7 @@ class TitleInfoParser:
             if has_info:
                 rospy.logdebug('  Looking for single series')
                 start,end= has_info.span()
-                section  = mopped[start:end]
+                section  = mopped[start:end].strip()
                 mopped   = mopped[:start] + mopped[end:]
                 mopped   = mopped.strip(', ')
                 
@@ -306,28 +320,34 @@ class TitleInfoParser:
         except Exception as inst:
               ros_node.ParseException(inst)
 
-    def run(self, mopped, info=None):
+    def run(self, mopped, info):
         try:
+            #print "=== === mopped:",mopped
             tags_keys = self.tags.keys()
             for idx in tags_keys:
                 filters = self.tags[idx]
                 for filter in filters:
-                    #print('  Applying [%s] filter'%filter)
                     
                     ## applying filter
                     filtered_info = self.read[filter](mopped)
-                    #print "[",filter,"] === filtered_info:",filtered_info 
+                    #print "[",filter,"] === title:",mopped
                     if filtered_info:
+                        #print "[",filter,"] === filtered_info:",filtered_info
                         mopped = filtered_info['title']
                         
                         ## initialising result item
                         if not info:
                             info = {}
+                            #print "[",filter,"] === NEW info:",info 
                         
                         ## updating result into result item
                         info.update(filtered_info)
                         rospy.logdebug('    Updated torrent information with [%s] filter'%filter)
-
+                    #print "[",filter,"] === info:",info 
+                    #print ""
+            #print "=== info:"
+            #pprint(info)
+            #print "=== ----:"
         except Exception as inst:
             ros_node.ParseException(inst)
         finally:
@@ -335,11 +355,10 @@ class TitleInfoParser:
 
 ## TODO Make tests
 def parse(title):
-    #print "INPUT"
     p = TitleInfoParser()
-    info = p.run(title)
-    #print "RESULT:"
-    print(info)
+    info = None
+    info = p.run(title, info)
+    pprint(info)
 
 if __name__ == '__main__':
     logging.getLogger('imdbpie').setLevel(logging.getLevelName('DEBUG'))
@@ -357,6 +376,13 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     if options.parse is not None:
         parse(options.parse)
+
+'''
+Test strings for season_part:
+https://regex101.com/r/EwWpuK/1
+
+The Plot Against America Il Complotto Contro L America S01E01 Parte 1
+'''
 
 '''
 Test strings for single_season:
@@ -383,6 +409,7 @@ Test strings for [single_series]:
         
 '''
 Test strings for [episode_info]:
+The Last Kingdom S03 E01-10
 ER.S03E01.DVDRip.Xvid.avi
 louie.101.dvdrip.xvid-ositv.avi
 S5E13 Atlantis SquarePantis.m4v
