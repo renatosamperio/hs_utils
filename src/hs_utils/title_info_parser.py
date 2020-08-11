@@ -25,11 +25,15 @@ class TitleInfoParser:
                 'single_episode': '(E(\d{2}).+([+\s]?|$))'
             }
 
+            self.time_span = 6
             
             for key, value in kwargs.iteritems():
                 if "pattens" == key:
                     self.pattens = value
                     rospy.logdebug('  Got [%d] patterns'%len(self.pattens))
+                elif "time_span" == key:
+                    self.time_span = value
+                    rospy.logdebug('  Got time span [%d]'%self.time_span)
             
             ## Creating pattern reader
             rospy.logdebug('  Creating pattern reader')

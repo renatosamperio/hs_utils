@@ -16,6 +16,7 @@ from pprint import pprint
 from hs_utils import utilities 
 from hs_utils import similarity
 from hs_utils.mongo_handler import MongoAccess
+
 from optparse import OptionParser, OptionGroup
 from operator import itemgetter
 from imdbpie import Imdb, exceptions
@@ -136,23 +137,27 @@ class IMDbHandler:
                 return result
 
         try:
+            pattern = '[&–\[\]@#$+,()]'
             new_sentence    = []
             is_utf          = False
             if self.list_terms is None:
                 rospy.logwarn("Invalid list of terms")
                 return
+            
+            ## swapping points if existing
+            sentence = sentence.replace('.', ' ').strip()
 
             ## Removing non-expected characters
             if debug: print "---> sentence:\t ", sentence
             try:
                 sentence = sentence.decode('utf-8', 'ignore').strip() 
-                sentence = re.sub('[–\[\]@#$+,()]', '', sentence)
+                sentence = re.sub(pattern, '', sentence)
             except UnicodeDecodeError as inst:
                 utilities.ParseException(inst, use_ros=False)
                 rospy.logwarn( "Failed character substitution, decoding UTF and ignoring characters")
                 try:
                     sentence = sentence.decode('utf8', 'ignore')
-                    sentence = re.sub('[–\[\]@#$+,()]', '', sentence)
+                    sentence = re.sub(pattern, '', sentence)
                     rospy.loginfo( "Sentence changed and removed characters")
                     is_utf = True
                 except UnicodeDecodeError as inst:
@@ -686,18 +691,13 @@ def search_extra(title):
 def search_title(args):
     try:
         
-        pprint(args)
-        title = args['search_title']
+        title = args['title']
         list_terms = '/home/renato/workspace/projects/home_services/src/imdb_collector/config/'
         args = {'list_terms':   list_terms}
         ih = IMDbHandler(**args)
         year_found=None
         data = ih.get_imdb_best_title(title, year_found=year_found)
-        #ih = IMDbHandler(**args)
-        #ih = imdb_handler.IMDbHandler(**args)
-        #print("  + Created IMDb handler")
-        #print("  + Searching for best title [%s]"%title)
-        #data   = ih.get_titles(imdb_handler, title)
+
         pprint(data)
     except Exception as inst:
         utilities.ParseException(inst)
@@ -726,7 +726,6 @@ def clean_title(title, debug=False):
     imdb_handler = IMDbHandler(**args)
     keywords     = []
     #print "CLEANING:", title
-    title = title.replace('.', ' ').strip()
     mopped = imdb_handler.clean_sentence(title, keywords, debug=debug).strip(' -')
     #print "RESULT:"
     #print "\t",mopped
@@ -768,8 +767,9 @@ def test_with_db(args):
         utilities.ParseException(inst)
 
 if __name__ == '__main__':
-    logging.getLogger('imdbpie').setLevel(logging.getLevelName('DEBUG'))
-    logging.getLogger('imdbpy.parser.http').setLevel(logging.getLevelName('DEBUG'))
+    #logging.getLogger('imdbpie').setLevel(logging.getLevelName('DEBUG'))
+    #logging.getLogger('imdbpie.imdbpie').setLevel(logging.getLevelName('DEBUG'))
+    #logging.getLogger('imdbpy.parser.http').setLevel(logging.getLevelName('DEBUG'))
     
     usage       = "usage: %prog option1=string option2=bool"
     parser      = OptionParser(usage=usage)
